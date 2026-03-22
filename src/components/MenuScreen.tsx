@@ -186,7 +186,7 @@ export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionC
         <div className="menu-buttons">
           <button className="menu-btn primary" onClick={onNewGame}>
             <span className="menu-btn-prompt">&gt;_</span>
-            START SURVIVING
+            Solo Game
             <span className="menu-btn-cursor" style={{ opacity: cursorVisible ? 1 : 0 }}>▮</span>
           </button>
 

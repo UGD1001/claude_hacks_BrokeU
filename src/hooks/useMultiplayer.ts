@@ -53,6 +53,7 @@ export function useMultiplayer(
             netWorth: 500,
             carOwned: false,
             year: 1,
+            lastSeen: Date.now(),
           }
           const updated = already ? prev.remotePlayers : [...prev.remotePlayers, newPlayer]
           // Broadcast updated player list to all clients
@@ -80,6 +81,7 @@ export function useMultiplayer(
               netWorth: 500,
               carOwned: false,
               year: 1,
+              lastSeen: Date.now(),
             })),
         }))
       }
@@ -87,6 +89,7 @@ export function useMultiplayer(
       if (msg.type === 'PLAYER_STATE') {
         setGameState(prev => {
           if (msg.playerId === prev.mpPlayerId) return prev
+          const now = Date.now()
           const already = prev.remotePlayers.some(p => p.id === msg.playerId)
           if (already) {
             return {

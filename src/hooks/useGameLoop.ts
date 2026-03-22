@@ -54,8 +54,8 @@ function stepMarketCondition(s: GameState): void {
   }
 }
 
-function rollMarketEvent(year: number): MarketEvent {
-  const roll = Math.random()
+function rollMarketEvent(year: number, rng: () => number): MarketEvent {
+  const roll = rng()
   if (roll < 0.05) return 'crash'
   if (roll < 0.10) return 'boom'
   if (year >= 10 && roll < 0.15) return 'cryptosurge'

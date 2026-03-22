@@ -229,4 +229,10 @@ export interface GameState {
   gameOverReason: string
   playerWon: boolean
 
+  // Multiplayer
+  mpRole: MPRole
+  mpSessionId: string
+  mpPlayerId: string
+  mpSessionSeed: number
+  remotePlayers: RemotePlayer[]
 }

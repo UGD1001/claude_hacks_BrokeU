@@ -229,6 +229,8 @@ export default function App() {
       setPendingSetup(setup)
       setShowTutorial(true)
     } else {
+      // Multiplayer: save setup and go to lobby
+      pendingSetupRef.current = setup
       setGameState(prev => ({ ...prev, playerName: setup.name || 'Player', screen: 'lobby' }))
     }
   }, [gameState.mpRole])
@@ -257,6 +259,7 @@ export default function App() {
     joinSession(gameState.mpSessionId, gameState.mpPlayerId, gameState.playerName)
   }, [gameState.screen, gameState.mpRole, gameState.mpSessionId, gameState.mpPlayerId, gameState.playerName, joinSession])
 
+  // Reset join flag when leaving lobby
   useEffect(() => {
     if (gameState.screen !== 'lobby') joinedRef.current = false
   }, [gameState.screen])
