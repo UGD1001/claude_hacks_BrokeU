@@ -1,8 +1,8 @@
 export type Screen = 'menu' | 'setup' | 'game' | 'endgame'
 
-export type StockId = 'AAPL' | 'TSLA' | 'MSFT' | 'AMZN' | 'NVDA' | 'GOOG'
-export type CryptoId = 'BTC' | 'ETH' | 'SOL' | 'DOGE'
-export type SideHustleId = 'freelance' | 'store' | 'content' | 'digital' | 'rental'
+export type StockId  = 'AAPL' | 'TSLA' | 'MSFT' | 'AMZN' | 'NVDA' | 'GOOG'
+export type CryptoId = 'BTC'  | 'ETH'  | 'SOL'  | 'DOGE'
+export type SideHustleId   = 'freelance' | 'store' | 'content' | 'digital' | 'rental'
 export type CoreInvestmentId = 'bank' | 'index' | 'realEstate' | 'cryptoPool'
 
 export interface EventChoice {
@@ -10,120 +10,103 @@ export interface EventChoice {
   label: string
   outcome: string
   outcomeClass: 'good' | 'neutral' | 'bad'
-  cashChange?: number        // direct cash delta
-  addDebt?: number           // add to loan debt
-  investInIndex?: number     // add amount to index fund
+  cashChange?:         number
+  addDebt?:            number
+  investInIndex?:      number
   sellAllInvestments?: boolean
-  sellIndexAmount?: number   // sell specific amount from index
-  lend?: number              // lend cash (returned in 3 years)
-  gamble?: number            // gamble this amount
-  salaryMultiplier?: number  // multiply salary permanently
-  rentHikeMonthly?: number   // add to monthly rent permanently
-  expenseAddMonthly?: number // add to monthly expenses permanently
+  sellIndexAmount?:    number
+  lend?:               number
+  gamble?:             number
+  salaryMultiplier?:   number
+  rentHikeMonthly?:    number
+  expenseAddMonthly?:  number
   loseHalfYearIncome?: boolean
 }
 
 export interface GameEvent {
-  id: string
-  icon: string
-  title: string
-  desc?: string
+  id:      string
+  icon:    string
+  title:   string
+  desc?:   string
   choices: EventChoice[]
 }
 
 export interface AchievementToastItem {
-  id: string
+  id:   string
   text: string
-  ts: number
+  ts:   number
 }
 
 export interface YearSnapshot {
-  year: number
+  year:     number
   playerNW: number
-  compNW: number
+  compNW:   number
 }
 
 export interface GameState {
   screen: Screen
 
-  // Player setup profile
-  playerName: string
-  salary: number          // annual
-  rent: number            // monthly
+  playerName:      string
+  salary:          number
+  rent:            number
   monthlyExpenses: number
-  tuitionDebt: number     // starting total
+  tuitionDebt:     number
 
-  // Game time
-  year: number            // 1–20
-  timeToNextYear: number  // real seconds until next year tick
-  gameTick: number
-  isPaused: boolean
+  year:          number
+  timeToNextYear: number
+  gameTick:      number
+  isPaused:      boolean
 
-  // Cash
   cash: number
 
-  // Debts
-  loanDebt: number
+  loanDebt:         number
   tuitionRemaining: number
 
-  // Core investments ($)
-  bankValue: number
-  indexValue: number
+  bankValue:       number
+  indexValue:      number
   realEstateValue: number
   cryptoPoolValue: number
 
-  // Stocks: shares held
-  stockHeld: Record<StockId, number>
-  stockPrices: Record<StockId, number>
-  stockSparklines: Record<StockId, number[]>
+  stockHeld:       Record<StockId,  number>
+  stockPrices:     Record<StockId,  number>
+  stockSparklines: Record<StockId,  number[]>
 
-  // Cryptos: units held (unlocked at year 10)
-  cryptoHeld: Record<CryptoId, number>
-  cryptoPrices: Record<CryptoId, number>
+  cryptoHeld:       Record<CryptoId, number>
+  cryptoPrices:     Record<CryptoId, number>
   cryptoSparklines: Record<CryptoId, number[]>
 
-  // Car asset
   carOwned: boolean
   carValue: number
 
-  // Phase
-  phase: 'car' | 'networth'
+  phase:        'car' | 'networth'
   showCarModal: boolean
-  carModalShown: boolean   // only show once
+  carModalShown: boolean
 
-  // Side hustles
-  activeSideHustles: SideHustleId[]
+  activeSideHustles:    SideHustleId[]
   sideHustleYearsActive: Partial<Record<SideHustleId, number>>
 
-  // Permanent modifiers from events
   salaryMultiplier: number
-  rentExtra: number
-  expensesExtra: number
+  rentExtra:        number
+  expensesExtra:    number
 
-  // Lent money
-  lentMoney: number
-  lentReturnYear: number  // year it comes back
+  lentMoney:      number
+  lentReturnYear: number
 
-  // Computer opponent
-  compCash: number
-  compIndexValue: number
-  compCarOwned: boolean
-  compCarValue: number
+  compCash:            number
+  compIndexValue:      number
+  compCarOwned:        boolean
+  compCarValue:        number
   compTuitionRemaining: number
 
-  // History (index = year - 1)
   snapshots: YearSnapshot[]
 
-  // Active event
-  activeEvent: GameEvent | null
+  activeEvent:   GameEvent | null
   nextEventYear: number
 
-  // Toasts & achievements
-  achievementToasts: AchievementToastItem[]
+  achievementToasts:    AchievementToastItem[]
   achievementsUnlocked: string[]
-  codexUnlocked: string[]
+  codexUnlocked:        string[]
 
-  // End game reason (for endgame screen)
   gameOverReason: string
-  playerWon: boolean
+  playerWon:      boolean
 }

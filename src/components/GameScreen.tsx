@@ -14,17 +14,17 @@ interface Props {
   onBuyCrypto: (id: CryptoId, units: number) => void
   onSellCrypto: (id: CryptoId, units: number) => void
   onActivateHustle: (id: SideHustleId, cost: number) => void
+  onQuit: () => void
 }
 
 export default function GameScreen({
-  state,
-  onEventChoice, onCarBuy, onCarSkip,
+  state, onEventChoice, onCarBuy, onCarSkip,
   onInvestCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
-  onActivateHustle,
+  onActivateHustle, onQuit,
 }: Props) {
   return (
     <div className="game-screen">
-      <LeftPanel state={state} onActivateHustle={onActivateHustle} />
+      <LeftPanel state={state} onActivateHustle={onActivateHustle} onQuit={onQuit} />
       <CenterPanel
         state={state}
         onEventChoice={onEventChoice}
