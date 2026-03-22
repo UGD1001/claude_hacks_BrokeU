@@ -183,7 +183,7 @@ function applyHalfYearTick(prev: GameState): GameState {
   const year = Math.ceil(halfYear / 2)     // 1–20
   const isNewYear = halfYear % 2 === 0     // true on 2nd half of each year
 
-  const marketEvent = rollMarketEvent(year)
+  const marketEvent = rollMarketEvent(year, Math.random)
 
   const cond = s.marketCondition
 

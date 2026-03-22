@@ -228,11 +228,4 @@ export interface GameState {
   // ── End state ────────────────────────────────────────────────────────────────
   gameOverReason: string
   playerWon: boolean
-
-  // Multiplayer
-  mpRole: MPRole
-  mpSessionId: string
-  mpPlayerId: string
-  mpSessionSeed: number
-  remotePlayers: RemotePlayer[]
 }

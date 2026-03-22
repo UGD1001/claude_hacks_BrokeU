@@ -55,7 +55,6 @@ export function useMultiplayer(
             netWorth: 500,
             carOwned: false,
             year: 1,
-            lastSeen: Date.now(),
           }
           const updated = already ? prev.remotePlayers : [...prev.remotePlayers, newPlayer]
           // Broadcast updated player list to all clients
@@ -83,15 +82,13 @@ export function useMultiplayer(
               netWorth: 500,
               carOwned: false,
               year: 1,
-              lastSeen: Date.now(),
-            })),
+              })),
         }))
       }
 
       if (msg.type === 'PLAYER_STATE') {
         setGameState(prev => {
           if (msg.playerId === prev.mpPlayerId) return prev
-          const now = Date.now()
           const already = prev.remotePlayers.some(p => p.id === msg.playerId)
           if (already) {
             return {
@@ -138,8 +135,10 @@ export function useMultiplayer(
     }
   })
 
-  // Open WebSocket once and keep alive with auto-reconnect
+  // Open WebSocket once and keep alive with auto-reconnect — skip entirely in solo mode
   useEffect(() => {
+    if (gameState.mpRole === 'solo') return   // no relay needed for solo play
+
     let ws: WebSocket
     let reconnectTimer: ReturnType<typeof setTimeout>
     let alive = true
@@ -182,7 +181,7 @@ export function useMultiplayer(
       // Don't null wsRef here — if StrictMode's cleanup runs while a new
       // socket is already being set up, we'd clobber it. The onclose guard handles it.
     }
-  }, []) // Open once, reconnects automatically
+  }, [gameState.mpRole]) // Re-run if role changes (solo → host/client)
 
   // Host: broadcast presence while in setup or lobby so clients can discover
   useEffect(() => {
