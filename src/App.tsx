@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice } from './types'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, SideHustleId } from './types'
 import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, COMP_TUITION } from './gameData'
 import { useGameLoop, applyEventChoice } from './hooks/useGameLoop'
 import { useMultiplayer } from './hooks/useMultiplayer'
@@ -7,16 +7,13 @@ import Nav from './components/Nav'
 import MenuScreen from './components/MenuScreen'
 import SetupScreen from './components/SetupScreen'
 import LobbyScreen from './components/LobbyScreen'
+import TutorialOverlay from './components/TutorialOverlay'
 import GameScreen from './components/GameScreen'
 import EndGameScreen from './components/EndGameScreen'
 import AchievementToast from './components/AchievementToast'
 
 interface SetupConfig {
-  name: string
-  salary: number
-  rent: number
-  expenses: number
-  tuitionDebt: number
+  name: string; salary: number; rent: number; expenses: number; tuitionDebt: number
 }
 
 function generateId(): string {
@@ -25,78 +22,33 @@ function generateId(): string {
 
 function makeInitialState(setup: SetupConfig, mpRole: GameState['mpRole'], mpSessionId: string, mpPlayerId: string, mpSessionSeed: number): GameState {
   const { stockPrices, stockSparklines, cryptoPrices, cryptoSparklines } = makeInitialMarketData()
-
-  const stockHeld = {} as Record<StockId, number>
+  const stockHeld  = {} as Record<StockId,  number>
   const cryptoHeld = {} as Record<CryptoId, number>
-  for (const id of STOCK_IDS) stockHeld[id] = 0
+  for (const id of STOCK_IDS)  stockHeld[id]  = 0
   for (const id of CRYPTO_IDS) cryptoHeld[id] = 0
 
   return {
     screen: 'game',
     playerName: setup.name || 'Player',
-    salary: setup.salary,
-    rent: setup.rent,
-    monthlyExpenses: setup.expenses,
-    tuitionDebt: setup.tuitionDebt,
-
-    year: 1,
-    timeToNextYear: 60,
-    gameTick: 0,
-    isPaused: false,
-
+    salary: setup.salary, rent: setup.rent,
+    monthlyExpenses: setup.expenses, tuitionDebt: setup.tuitionDebt,
+    year: 1, timeToNextYear: 60, gameTick: 0, isPaused: false,
     cash: 500,
-
-    loanDebt: 0,
-    tuitionRemaining: setup.tuitionDebt,
-
-    bankValue: 0,
-    indexValue: 0,
-    realEstateValue: 0,
-    cryptoPoolValue: 0,
-
-    stockHeld,
-    stockPrices,
-    stockSparklines,
-
-    cryptoHeld,
-    cryptoPrices,
-    cryptoSparklines,
-
-    carOwned: false,
-    carValue: 0,
-
-    phase: 'car',
-    showCarModal: false,
-    carModalShown: false,
-
-    activeSideHustles: [],
-    sideHustleYearsActive: {},
-
-    salaryMultiplier: 1,
-    rentExtra: 0,
-    expensesExtra: 0,
-
-    lentMoney: 0,
-    lentReturnYear: 0,
-
-    compCash: 500,
-    compIndexValue: 0,
-    compCarOwned: false,
-    compCarValue: 0,
+    loanDebt: 0, tuitionRemaining: setup.tuitionDebt,
+    bankValue: 0, indexValue: 0, realEstateValue: 0, cryptoPoolValue: 0,
+    stockHeld, stockPrices, stockSparklines,
+    cryptoHeld, cryptoPrices, cryptoSparklines,
+    carOwned: false, carValue: 0,
+    phase: 'car', showCarModal: false, carModalShown: false,
+    activeSideHustles: [], sideHustleYearsActive: {},
+    salaryMultiplier: 1, rentExtra: 0, expensesExtra: 0,
+    lentMoney: 0, lentReturnYear: 0,
+    compCash: 500, compIndexValue: 0, compCarOwned: false, compCarValue: 0,
     compTuitionRemaining: COMP_TUITION,
-
     snapshots: [],
-
-    activeEvent: null,
-    nextEventYear: 3,
-
-    achievementToasts: [],
-    achievementsUnlocked: [],
-    codexUnlocked: [],
-
-    gameOverReason: '',
-    playerWon: false,
-
+    activeEvent: null, nextEventYear: 3,
+    achievementToasts: [], achievementsUnlocked: [], codexUnlocked: [],
+    gameOverReason: '', playerWon: false,
     mpRole,
     mpSessionId,
     mpPlayerId,
@@ -165,6 +117,8 @@ function makeMenuState(): GameState {
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>(makeMenuState)
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [pendingSetup, setPendingSetup] = useState<SetupConfig | null>(null)
   // Pending setup config saved while waiting in lobby
   const pendingSetupRef = useRef<SetupConfig | null>(null)
   // Game start callback used by clients when they receive GAME_START from host
@@ -242,20 +196,25 @@ export default function App() {
   }, [joinCode, joinName, activeSessions])
 
   const handleSetupDone = useCallback((setup: SetupConfig) => {
-    setGameState(prev => {
-      if (prev.mpRole === 'solo') {
-        // Solo: start game immediately
-        return makeInitialState(setup, 'solo', '', '', 0)
-      }
+    if (gameState.mpRole === 'solo') {
+      // Solo: show tutorial first
+      setPendingSetup(setup)
+      setShowTutorial(true)
+    } else {
       // Multiplayer: save setup and go to lobby
       pendingSetupRef.current = setup
-      // Announce player name to lobby
-      if (prev.mpRole === 'client') {
-        // We'll join after entering lobby screen
-      }
-      return { ...prev, playerName: setup.name || 'Player', screen: 'lobby' }
-    })
-  }, [])
+      setGameState(prev => ({ ...prev, playerName: setup.name || 'Player', screen: 'lobby' }))
+    }
+  }, [gameState.mpRole])
+
+  // When tutorial completes, actually start the game
+  const handleTutorialComplete = useCallback(() => {
+    if (pendingSetup) {
+      setGameState(makeInitialState(pendingSetup, 'solo', '', '', 0))
+      setPendingSetup(null)
+    }
+    setShowTutorial(false)
+  }, [pendingSetup])
 
   // Client: join the session once they enter the lobby screen
   const joinedRef = useRef(false)
@@ -294,17 +253,15 @@ export default function App() {
 
   const handleCarBuy = useCallback(() => {
     setGameState(prev => {
-      let s = { ...prev, showCarModal: false, isPaused: false, phase: 'networth' as const }
+      let s = { ...prev, showCarModal:false, isPaused:false, phase:'networth' as const }
       const cost = 25000
       if (s.cash >= cost) {
         s.cash -= cost
       } else {
         const fromIndex = Math.min(cost - s.cash, s.indexValue)
-        s.indexValue -= fromIndex
-        s.cash -= (cost - fromIndex)
+        s.indexValue -= fromIndex; s.cash -= (cost - fromIndex)
       }
-      s.carOwned = true
-      s.carValue = cost
+      s.carOwned = true; s.carValue = cost
       return s
     })
   }, [])
@@ -319,11 +276,11 @@ export default function App() {
       if (actual < 100) return prev
       return {
         ...prev,
-        cash: prev.cash - actual,
-        bankValue: type === 'bank' ? prev.bankValue + actual : prev.bankValue,
-        indexValue: type === 'index' ? prev.indexValue + actual : prev.indexValue,
-        realEstateValue: type === 'realEstate' ? prev.realEstateValue + actual : prev.realEstateValue,
-        cryptoPoolValue: type === 'cryptoPool' ? prev.cryptoPoolValue + actual : prev.cryptoPoolValue,
+        cash:            prev.cash - actual,
+        bankValue:       type==='bank'       ? prev.bankValue       + actual : prev.bankValue,
+        indexValue:      type==='index'      ? prev.indexValue      + actual : prev.indexValue,
+        realEstateValue: type==='realEstate' ? prev.realEstateValue + actual : prev.realEstateValue,
+        cryptoPoolValue: type==='cryptoPool' ? prev.cryptoPoolValue + actual : prev.cryptoPoolValue,
       }
     })
   }, [])
@@ -361,7 +318,7 @@ export default function App() {
     })
   }, [])
 
-  const handleActivateHustle = useCallback((id: import('./types').SideHustleId, cost: number) => {
+  const handleActivateHustle = useCallback((id: SideHustleId, cost: number) => {
     setGameState(prev => {
       if (prev.cash < cost) return prev
       return {
@@ -374,12 +331,18 @@ export default function App() {
   }, [])
 
   const handlePlayAgain = useCallback(() => {
+    setShowTutorial(false)
+    setPendingSetup(null)
     setGameState({ ...makeMenuState(), screen: 'setup', mpRole: 'solo' })
   }, [])
 
   const handleMenu = useCallback(() => {
+    setShowTutorial(false)
+    setPendingSetup(null)
     setGameState(makeMenuState())
   }, [])
+
+  const handleQuit = useCallback(() => setGameState(prev => ({ ...prev, screen: 'setup' })), [])
 
   return (
     <>
@@ -445,7 +408,6 @@ export default function App() {
           </div>
         </div>
       )}
-
       {gameState.screen === 'setup' && (
         <SetupScreen onStart={handleSetupDone} onBack={handleBack} />
       )}
@@ -457,7 +419,9 @@ export default function App() {
           onBack={handleBack}
         />
       )}
-
+      {showTutorial && (
+        <TutorialOverlay onComplete={handleTutorialComplete} />
+      )}
       {gameState.screen === 'game' && (
         <GameScreen
           state={gameState}
@@ -470,17 +434,12 @@ export default function App() {
           onBuyCrypto={handleBuyCrypto}
           onSellCrypto={handleSellCrypto}
           onActivateHustle={handleActivateHustle}
+          onQuit={handleQuit}
         />
       )}
-
       {gameState.screen === 'endgame' && (
-        <EndGameScreen
-          state={gameState}
-          onPlayAgain={handlePlayAgain}
-          onMenu={handleMenu}
-        />
+        <EndGameScreen state={gameState} onPlayAgain={handlePlayAgain} onMenu={handleMenu} />
       )}
-
       {gameState.screen === 'game' && (
         <AchievementToast toasts={gameState.achievementToasts} />
       )}

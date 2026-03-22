@@ -11,7 +11,7 @@ export default function EventModal({ event, onChoice }: Props) {
       <div className="event-modal">
         <div className="event-header">
           <span className="event-icon">{event.icon}</span>
-          <div className="event-title">{event.title}</div>
+          <div className="event-title">{event.title.toUpperCase()}</div>
         </div>
 
         {event.desc && <p className="event-desc">{event.desc}</p>}
