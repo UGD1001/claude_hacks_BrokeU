@@ -19,7 +19,7 @@ function fmtTime(secs: number) {
   return `${m}:${s.toString().padStart(2,'0')}`
 }
 
-export default function Nav({ state, onBack }: NavProps) {
+export default function Nav({ state, onBack: _onBack }: NavProps) {
   const isGame = state.screen === 'game'
   const netWorth = isGame ? calcNetWorth(state) : 0
   const yearsLeft = Math.max(0, TOTAL_YEARS - state.year + 1)
