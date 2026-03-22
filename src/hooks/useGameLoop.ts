@@ -11,6 +11,7 @@ import {
 
 const TICK_MS = 250
 const TICK_SEC = TICK_MS / 1000
+const PRICE_UPDATE_INTERVAL = 8 // Update prices every 8 ticks (2 seconds)
 
 // ── Market helpers ────────────────────────────────────────────────────────────
 
@@ -40,6 +41,41 @@ function pushToast(s: GameState, text: string) {
 
 function fmtNum(n: number) {
   return Math.floor(Math.abs(n)).toLocaleString('en-US')
+}
+
+// ── Micro price fluctuation (between year ticks) ──────────────────────────────
+
+function applyMicroPriceUpdate(prev: GameState): GameState {
+  const s: GameState = {
+    ...prev,
+    stockPrices: { ...prev.stockPrices },
+    stockSparklines: { ...prev.stockSparklines } as Record<StockId, number[]>,
+    cryptoPrices: { ...prev.cryptoPrices },
+    cryptoSparklines: { ...prev.cryptoSparklines } as Record<CryptoId, number[]>,
+  }
+
+  // Small random fluctuation for stocks (±0.5%)
+  for (const id of STOCK_IDS) {
+    const fluctuation = 1 + (Math.random() - 0.5) * 0.01
+    s.stockPrices[id] = Math.max(1, s.stockPrices[id] * fluctuation)
+    // Update sparkline with current price (shift left, add new)
+    const spark = [...s.stockSparklines[id]]
+    spark.shift()
+    spark.push(s.stockPrices[id])
+    s.stockSparklines[id] = spark
+  }
+
+  // Larger fluctuation for crypto (±2%)
+  for (const id of CRYPTO_IDS) {
+    const fluctuation = 1 + (Math.random() - 0.5) * 0.04
+    s.cryptoPrices[id] = Math.max(0.001, s.cryptoPrices[id] * fluctuation)
+    const spark = [...s.cryptoSparklines[id]]
+    spark.shift()
+    spark.push(s.cryptoPrices[id])
+    s.cryptoSparklines[id] = spark
+  }
+
+  return s
 }
 
 // ── Event picker ──────────────────────────────────────────────────────────────
@@ -270,6 +306,11 @@ export function useGameLoop(
         // Clean stale toasts
         const now = Date.now()
         s.achievementToasts = s.achievementToasts.filter(t => now - t.ts < 4000)
+
+        // Micro price updates every 2 seconds for live chart animation
+        if (!s.isPaused && s.gameTick % PRICE_UPDATE_INTERVAL === 0) {
+          s = applyMicroPriceUpdate(s)
+        }
 
         if (!s.isPaused && s.timeToNextYear <= 0) {
           s = applyYearTick(s)

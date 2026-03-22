@@ -35,7 +35,7 @@ export default function LeftPanel({ state, onActivateHustle }: Props) {
       <div className="panel-logo">BROKE <span>U</span></div>
 
       {state.phase === 'car' && (
-        <div className="lp-goal">
+        <div className="lp-card lp-goal">
           <div className="lp-goal-row">
             <span>🚗 Car Goal</span>
             <span className="lp-goal-pct">{goalPct.toFixed(0)}%</span>
@@ -45,125 +45,134 @@ export default function LeftPanel({ state, onActivateHustle }: Props) {
         </div>
       )}
 
-      <div className="divider" />
-
-      <div className="lp-stat">
-        <div className="lp-label">NET WORTH</div>
-        <div className="lp-nw" style={{ color: nw < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(nw)}</div>
-      </div>
-      <div className="lp-stat">
-        <div className="lp-label">CASH</div>
-        <div className="lp-cash" style={{ color: state.cash < 500 ? 'var(--red)' : 'var(--sky)' }}>{fmt(state.cash)}</div>
-      </div>
-
-      <div className="divider" />
-
-      <div className="lp-label">MONTHLY FLOW</div>
-      <div className="lp-flow">
-        <div className="lp-fr"><span>Salary</span><span className="lp-pos">+${Math.floor(flow.incomeMo).toLocaleString()}</span></div>
-        {flow.hustleMo > 0 && <div className="lp-fr"><span>Side Hustles</span><span className="lp-pos">+${Math.floor(flow.hustleMo).toLocaleString()}</span></div>}
-        <div className="lp-fr"><span>Rent</span><span className="lp-neg">−${Math.floor(flow.rentMo).toLocaleString()}</span></div>
-        <div className="lp-fr"><span>Expenses</span><span className="lp-neg">−${Math.floor(flow.expensesMo).toLocaleString()}</span></div>
-        {flow.tuitionMo > 0 && <div className="lp-fr"><span>Tuition</span><span className="lp-neg">−${Math.floor(flow.tuitionMo).toLocaleString()}</span></div>}
-        {flow.loanInterestMo > 0 && <div className="lp-fr"><span>Loan int.</span><span className="lp-neg">−${Math.floor(flow.loanInterestMo).toLocaleString()}</span></div>}
-        <div className="lp-flow-div" />
-        <div className="lp-fr lp-net">
-          <span>Net/mo</span>
-          <span style={{ color: flow.netMo >= 0 ? 'var(--green)' : 'var(--red)' }}>
-            {flow.netMo >= 0 ? '+' : '−'}${Math.floor(Math.abs(flow.netMo)).toLocaleString()}
-          </span>
+      {/* Net Worth & Cash Card */}
+      <div className="lp-card lp-finances">
+        <div className="lp-stat">
+          <div className="lp-label">NET WORTH</div>
+          <div className="lp-nw" style={{ color: nw < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(nw)}</div>
+        </div>
+        <div className="lp-stat-divider" />
+        <div className="lp-stat">
+          <div className="lp-label">CASH</div>
+          <div className="lp-cash" style={{ color: state.cash < 500 ? 'var(--red)' : 'var(--sky)' }}>{fmt(state.cash)}</div>
         </div>
       </div>
 
+      {/* Monthly Flow Card */}
+      <div className="lp-card">
+        <div className="lp-card-header">MONTHLY FLOW</div>
+        <div className="lp-flow">
+          <div className="lp-fr"><span>Salary</span><span className="lp-pos">+${Math.floor(flow.incomeMo).toLocaleString()}</span></div>
+          {flow.hustleMo > 0 && <div className="lp-fr"><span>Side Hustles</span><span className="lp-pos">+${Math.floor(flow.hustleMo).toLocaleString()}</span></div>}
+          <div className="lp-fr"><span>Rent</span><span className="lp-neg">−${Math.floor(flow.rentMo).toLocaleString()}</span></div>
+          <div className="lp-fr"><span>Expenses</span><span className="lp-neg">−${Math.floor(flow.expensesMo).toLocaleString()}</span></div>
+          {flow.tuitionMo > 0 && <div className="lp-fr"><span>Tuition</span><span className="lp-neg">−${Math.floor(flow.tuitionMo).toLocaleString()}</span></div>}
+          {flow.loanInterestMo > 0 && <div className="lp-fr"><span>Loan int.</span><span className="lp-neg">−${Math.floor(flow.loanInterestMo).toLocaleString()}</span></div>}
+          <div className="lp-flow-div" />
+          <div className="lp-fr lp-net">
+            <span>Net/mo</span>
+            <span style={{ color: flow.netMo >= 0 ? 'var(--green)' : 'var(--red)' }}>
+              {flow.netMo >= 0 ? '+' : '−'}${Math.floor(Math.abs(flow.netMo)).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Debt Tracker Card */}
       {(state.loanDebt > 0 || state.tuitionRemaining > 0) && (
-        <>
-          <div className="divider" />
-          <div className="lp-label">DEBT TRACKER</div>
+        <div className="lp-card lp-card-debt">
+          <div className="lp-card-header">DEBT TRACKER</div>
           {state.loanDebt > 0 && <div className="lp-debt-row"><span>Loan (18% APR)</span><span className="lp-neg">{fmt(state.loanDebt)}</span></div>}
           {state.tuitionRemaining > 0 && <div className="lp-debt-row"><span>Student Loans</span><span className="lp-neg">{fmt(state.tuitionRemaining)}</span></div>}
-        </>
+        </div>
       )}
       {state.lentMoney > 0 && (
         <div className="lp-lent">💸 {fmt(state.lentMoney)} lent · returns yr {state.lentReturnYear}</div>
       )}
 
-      <div className="divider" />
-      <div className="lp-label">SIDE HUSTLES</div>
-      <div className="lp-hustles">
-        {SIDE_HUSTLES.map(h => {
-          const isActive = state.activeSideHustles.includes(h.id)
-          if (isActive) {
-            const yrs = state.sideHustleYearsActive[h.id] ?? 0
-            const mult = ('growthYears' in h) ? Math.min(4, 1 + yrs) : 1
-            const inc = h.annualIncome * mult
+      {/* Side Hustles Card */}
+      <div className="lp-card">
+        <div className="lp-card-header">SIDE HUSTLES</div>
+        <div className="lp-hustles">
+          {SIDE_HUSTLES.map(h => {
+            const isActive = state.activeSideHustles.includes(h.id)
+            if (isActive) {
+              const yrs = state.sideHustleYearsActive[h.id] ?? 0
+              const mult = ('growthYears' in h) ? Math.min(4, 1 + yrs) : 1
+              const inc = h.annualIncome * mult
+              return (
+                <div key={h.id} className="lp-hustle on">
+                  <span>{h.icon} {h.name}</span>
+                  <span className="lp-pos">+${inc.toLocaleString()}/yr</span>
+                </div>
+              )
+            }
+            const needsRE = ('requiresRealEstate' in h) && (h as { requiresRealEstate?: boolean }).requiresRealEstate && state.realEstateValue <= 0
+            const notAvail = state.year < h.availableFromYear
+            const blocked = needsRE || notAvail
             return (
-              <div key={h.id} className="lp-hustle on">
-                <span>{h.icon} {h.name}</span>
-                <span className="lp-pos">+${inc.toLocaleString()}/yr</span>
-              </div>
-            )
-          }
-          const needsRE = ('requiresRealEstate' in h) && (h as { requiresRealEstate?: boolean }).requiresRealEstate && state.realEstateValue <= 0
-          const notAvail = state.year < h.availableFromYear
-          const blocked = needsRE || notAvail
-          return (
-            <div key={h.id} className="lp-hustle">
-              <span style={{ opacity: blocked ? 0.45 : 1 }}>
-                {h.icon} {h.name}
-                {needsRE && <em className="lp-lock"> (needs RE)</em>}
-                {notAvail && <em className="lp-lock"> (yr {h.availableFromYear}+)</em>}
-              </span>
-              <button
-                className="lp-hustle-btn"
-                disabled={blocked || state.cash < h.cost}
-                onClick={() => onActivateHustle(h.id, h.cost)}
-              >
-                {h.cost > 0 ? `$${h.cost.toLocaleString()}` : 'Free'}
-              </button>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="divider" />
-      <div className="lp-label">LEADERBOARD</div>
-      <div className="lp-lb">
-        {lbEntries.map((e, i) => (
-          <div key={e.label} className={`lp-lb-row ${e.isMe ? 'me' : ''}`}>
-            <span className="lp-lb-rank">#{i + 1}</span>
-            <span className="lp-lb-name">{e.label}{e.car ? ' 🚗' : ''}</span>
-            <span className="lp-lb-nw" style={{ color: e.isMe ? 'var(--yellow)' : 'var(--mid)' }}>{fmt(e.nw)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="divider" />
-      <div className="lp-codex-hdr" onClick={() => setShowCodex(v => !v)}>
-        <span className="lp-label" style={{ cursor: 'pointer' }}>CODEX</span>
-        <span className="lp-codex-ct">{codexUnlocked.length}/{CODEX_ENTRIES.length}</span>
-        <span className="lp-codex-arr">{showCodex ? '▲' : '▼'}</span>
-      </div>
-      {showCodex && (
-        <div className="lp-codex-list">
-          {CODEX_ENTRIES.map(e => {
-            if (!state.codexUnlocked.includes(e.id))
-              return <div key={e.id} className="lp-cdx locked">🔒 ???</div>
-            return (
-              <div key={e.id} className={`lp-cdx ${codexId === e.id ? 'sel' : ''}`} onClick={() => setCodexId(codexId === e.id ? null : e.id)}>
-                {e.title}
+              <div key={h.id} className="lp-hustle">
+                <span style={{ opacity: blocked ? 0.45 : 1 }}>
+                  {h.icon} {h.name}
+                  {needsRE && <em className="lp-lock"> (needs RE)</em>}
+                  {notAvail && <em className="lp-lock"> (yr {h.availableFromYear}+)</em>}
+                </span>
+                <button
+                  className="lp-hustle-btn"
+                  disabled={blocked || state.cash < h.cost}
+                  onClick={() => onActivateHustle(h.id, h.cost)}
+                >
+                  {h.cost > 0 ? `$${h.cost.toLocaleString()}` : 'Free'}
+                </button>
               </div>
             )
           })}
         </div>
-      )}
-      {detailEntry && (
-        <div className="lp-codex-detail">
-          <div className="lp-cdx-title">{detailEntry.title}</div>
-          <div className="lp-cdx-body">{detailEntry.explanation}</div>
-          <div className="lp-cdx-tip">💡 {detailEntry.gameTip}</div>
-          <button className="lp-cdx-close" onClick={() => setCodexId(null)}>✕ close</button>
+      </div>
+
+      {/* Leaderboard Card */}
+      <div className="lp-card">
+        <div className="lp-card-header">LEADERBOARD</div>
+        <div className="lp-lb">
+          {lbEntries.map((e, i) => (
+            <div key={e.label} className={`lp-lb-row ${e.isMe ? 'me' : ''}`}>
+              <span className="lp-lb-rank">#{i + 1}</span>
+              <span className="lp-lb-name">{e.label}{e.car ? ' 🚗' : ''}</span>
+              <span className="lp-lb-nw" style={{ color: e.isMe ? 'var(--yellow)' : 'var(--mid)' }}>{fmt(e.nw)}</span>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* Codex Card */}
+      <div className="lp-card lp-card-codex">
+        <div className="lp-codex-hdr" onClick={() => setShowCodex(v => !v)}>
+          <span className="lp-card-header" style={{ cursor: 'pointer', marginBottom: 0 }}>CODEX</span>
+          <span className="lp-codex-ct">{codexUnlocked.length}/{CODEX_ENTRIES.length}</span>
+          <span className="lp-codex-arr">{showCodex ? '▲' : '▼'}</span>
+        </div>
+        {showCodex && (
+          <div className="lp-codex-list">
+            {CODEX_ENTRIES.map(e => {
+              if (!state.codexUnlocked.includes(e.id))
+                return <div key={e.id} className="lp-cdx locked">🔒 ???</div>
+              return (
+                <div key={e.id} className={`lp-cdx ${codexId === e.id ? 'sel' : ''}`} onClick={() => setCodexId(codexId === e.id ? null : e.id)}>
+                  {e.title}
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {detailEntry && (
+          <div className="lp-codex-detail">
+            <div className="lp-cdx-title">{detailEntry.title}</div>
+            <div className="lp-cdx-body">{detailEntry.explanation}</div>
+            <div className="lp-cdx-tip">💡 {detailEntry.gameTip}</div>
+            <button className="lp-cdx-close" onClick={() => setCodexId(null)}>✕ close</button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
