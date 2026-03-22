@@ -235,9 +235,11 @@ body {
   margin-bottom: 10px;
   color: var(--sage);
   text-shadow: 4px 4px 0 var(--plum);
+  white-space: nowrap;
 }
-.menu-title .y { color: var(--amber); text-shadow: 4px 4px 0 var(--terra); }
+.menu-title .y { color: var(--amber); text-shadow: 4px 4px 0 var(--terra); margin-left: -0.25em; }
 .menu-title .r { color: var(--burg);  text-shadow: 4px 4px 0 var(--plum); }
+.menu-title-cursor { color: var(--sage); opacity: 0.8; }
 
 .menu-tagline {
   font-size: 7px;

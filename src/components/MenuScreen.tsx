@@ -4,12 +4,30 @@ interface MenuScreenProps {
   onNewGame: () => void
 }
 
+const TITLE = [
+  { char: 'B', cls: 'r' },
+  { char: 'R', cls: 'r' },
+  { char: 'O', cls: '' },
+  { char: 'K', cls: '' },
+  { char: 'E', cls: '' },
+  { char: ' ', cls: '' },
+  { char: 'U', cls: 'y' },
+]
+
 export default function MenuScreen({ onNewGame }: MenuScreenProps) {
   const [cursorVisible, setCursorVisible] = useState(true)
+  const [typedCount, setTypedCount] = useState(0)
+
   useEffect(() => {
     const t = setInterval(() => setCursorVisible(v => !v), 530)
     return () => clearInterval(t)
   }, [])
+
+  useEffect(() => {
+    if (typedCount >= TITLE.length) return
+    const t = setTimeout(() => setTypedCount(n => n + 1), 120)
+    return () => clearTimeout(t)
+  }, [typedCount])
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', paddingTop: 60, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
@@ -118,7 +136,10 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
       <div style={{ position:'relative', zIndex:2, padding:'64px 56px', maxWidth:520, display:'flex', flexDirection:'column' }}>
         <div className="menu-eyebrow">// financial survival rpg · 20 year simulation</div>
         <h1 className="menu-title">
-          <span className="r">BR</span>OKE<br/><span className="y">U</span>
+          {TITLE.slice(0, typedCount).map((t, i) =>
+            t.cls ? <span key={i} className={t.cls}>{t.char}</span> : t.char
+          )}
+          <span className="menu-title-cursor">{cursorVisible ? '▌' : ' '}</span>
         </h1>
         <p className="menu-tagline">
           "Adulting is a full-time job with no training."
