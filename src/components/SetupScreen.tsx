@@ -1,11 +1,14 @@
 import { useState } from 'react'
 
+import type { GameMode } from '../types'
+
 interface SetupConfig {
   name: string
   salary: number
   rent: number
   expenses: number
   tuitionDebt: number
+  gameMode: GameMode
 }
 
 interface Props {
@@ -30,24 +33,43 @@ export default function SetupScreen({ onStart, onBack }: Props) {
   const [rent,     setRent]     = useState(1200)
   const [expenses, setExpenses] = useState(800)
   const [tuition,  setTuition]  = useState(0)
+  const [gameMode, setGameMode] = useState<GameMode>('standard')
 
   const annualNet  = salary - rent * 12 - expenses * 12 - Math.min(tuition, 1000)
   const monthlyNet = annualNet / 12
-  const compAnnualNet = 50000 - 1200*12 - 800*12 - 1000
+  const compAnnualNet = salary - rent * 12 - expenses * 12 - Math.min(tuition, 1000)
 
-  const diff = () => {
+  const diffLabel = () => {
     if (annualNet > 40000) return { text:'EASY',   color:'var(--teal)' }
     if (annualNet > 20000) return { text:'MEDIUM',  color:'var(--amber)' }
     if (annualNet > 5000)  return { text:'HARD',    color:'var(--terra)' }
     return                        { text:'BRUTAL',  color:'var(--burg)' }
   }
-  const d = diff()
+  const d = diffLabel()
 
   return (
     <div className="setup-screen">
       <div className="setup-left">
         <div className="setup-eyebrow">// configure your financial profile</div>
         <h2 className="setup-title">PLAYER SETUP</h2>
+
+        {/* Mode toggle */}
+        <div className="setup-mode-toggle">
+          <button
+            className={`mode-btn ${gameMode === 'standard' ? 'active' : ''}`}
+            onClick={() => setGameMode('standard')}
+          >
+            STANDARD
+            <span className="mode-sub">20 years · full simulation</span>
+          </button>
+          <button
+            className={`mode-btn sprint ${gameMode === 'sprint' ? 'active' : ''}`}
+            onClick={() => setGameMode('sprint')}
+          >
+            ⚡ SPRINT
+            <span className="mode-sub">first to car wins · 10 min max</span>
+          </button>
+        </div>
 
         <div className="setup-field">
           <label className="setup-label">YOUR NAME</label>
@@ -115,8 +137,8 @@ export default function SetupScreen({ onStart, onBack }: Props) {
         </div>
 
         <div className="setup-actions">
-          <button className="setup-btn-start" onClick={() => onStart({ name, salary, rent, expenses, tuitionDebt: tuition })}>
-            ▶ START SURVIVING
+          <button className="setup-btn-start" onClick={() => onStart({ name, salary, rent, expenses, tuitionDebt: tuition, gameMode })}>
+            START SURVIVING →
           </button>
           <button className="setup-btn-back" onClick={onBack}>◄ BACK</button>
         </div>
@@ -164,18 +186,32 @@ export default function SetupScreen({ onStart, onBack }: Props) {
         <div className="setup-preview">
           <div className="setup-preview-title">// COMPUTER OPPONENT</div>
           <div className="setup-preview-block">
-            <div className="setup-preview-row"><span>Salary</span><span className="pos">+$4,167/mo</span></div>
-            <div className="setup-preview-row"><span>Rent</span><span className="neg">−$1,200/mo</span></div>
-            <div className="setup-preview-row"><span>Expenses</span><span className="neg">−$800/mo</span></div>
-            <div className="setup-preview-row"><span>Tuition</span><span className="neg">−$83/mo</span></div>
-            <div className="setup-preview-divider"/>
+            <div className="setup-preview-row">
+              <span>Salary</span>
+              <span className="pos">+{fmtMo(salary / 12)}</span>
+            </div>
+            <div className="setup-preview-row">
+              <span>Rent</span>
+              <span className="neg">−{fmtMo(rent)}</span>
+            </div>
+            <div className="setup-preview-row">
+              <span>Expenses</span>
+              <span className="neg">−{fmtMo(expenses)}</span>
+            </div>
+            {tuition > 0 && (
+              <div className="setup-preview-row">
+                <span>Tuition (${Math.min(tuition, 1000).toLocaleString()}/yr)</span>
+                <span className="neg">−{fmtMo(Math.min(tuition, 1000) / 12)}</span>
+              </div>
+            )}
+            <div className="setup-preview-divider" />
             <div className="setup-preview-row net">
               <span>Net / month</span>
-              <span style={{ color:'var(--teal)' }}>+{fmtMo(compAnnualNet/12)}</span>
+              <span style={{ color: compAnnualNet / 12 >= 0 ? 'var(--teal)' : 'var(--burg)' }}>
+                {compAnnualNet / 12 >= 0 ? '+' : ''}{fmtMo(compAnnualNet / 12)}
+              </span>
             </div>
-          </div>
-          <div className="setup-comp-note">
-            Strategy: ALL surplus → index fund, never panic
+            <div className="setup-comp-note">Same profile · strategy: all surplus → index fund</div>
           </div>
         </div>
       </div>

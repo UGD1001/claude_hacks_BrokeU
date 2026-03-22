@@ -1,29 +1,28 @@
 import { useState } from 'react'
 import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice } from '../types'
-import { STOCK_IDS, CRYPTO_IDS, STOCK_META, CRYPTO_META, calcNetWorth, CAR_GOAL } from '../gameData'
+import { STOCK_IDS, CRYPTO_IDS, STOCK_META, CRYPTO_META, calcNetWorth, CAR_GOAL, HOUSE_OFFER_CASH_THRESHOLD } from '../gameData'
 import EventModal from './EventModal'
 import CarModal from './CarModal'
 
 // ── Educational content ──────────────────────────────────────────────────────
 const CORE_INFO: Record<CoreInvestmentId, { desc: string; tip: string }> = {
-  bank:       { desc:'The safest option. Grows slowly at ~1.5%/yr with virtually zero risk. FDIC insured up to $250k.', tip:'Keep 3-6 months of expenses here as an emergency fund. Without it, one bad event card can spiral into debt.' },
-  index:      { desc:'Diversified fund tracking the entire stock market. Historically 7-10%/yr. Low fees, broad exposure, minimal effort.', tip:'The computer puts ALL surplus cash here — and it works. This "boring" strategy beats most active traders.' },
-  realEstate: { desc:'Property investment that appreciates ~6%/yr. Less volatile than stocks but requires larger capital. Unlocks rental income.', tip:'Once you own real estate, you can activate Room Rental for $6,000/yr extra income.' },
-  cryptoPool: { desc:'Diversified basket of cryptocurrencies. Extreme volatility — can double or lose 50% in a single year.', tip:'Only invest what you can afford to lose completely. Crypto has made millionaires and bankrupted others.' },
+  bank:         { desc:'The safest option. Grows slowly at ~1.5%/yr with virtually zero risk. FDIC insured up to $250k.', tip:'Keep 3-6 months of expenses here as an emergency fund. Without it, one bad event card can spiral into debt.' },
+  index:        { desc:'Diversified fund tracking the entire stock market. Historically 7-10%/yr. Low fees, broad exposure, minimal effort.', tip:'The computer puts ALL surplus cash here — and it works. This "boring" strategy beats most active traders.' },
+  cryptoBasket: { desc:'Diversified basket of cryptocurrencies. Extreme volatility — can double or lose 50% in a single year.', tip:'Only invest what you can afford to lose completely. Crypto has made millionaires and bankrupted others.' },
 }
 const STOCK_INFO: Record<StockId, { desc: string; tip: string }> = {
   AAPL: { desc:'Apple Inc. Tech giant known for iPhone, Mac, and services. Steady growth, strong cash position.', tip:'Blue chip stock with moderate volatility. Good for individual stock exposure.' },
-  TSLA: { desc:'Tesla Inc. Electric vehicle leader. High growth potential but extremely volatile — can swing 50%+ in a year.', tip:'High risk, high reward. Position sizing matters — don\'t put everything in one volatile stock.' },
   MSFT: { desc:'Microsoft Corp. Enterprise software, cloud computing (Azure), and gaming. Consistent performer.', tip:'One of the most stable tech stocks. Cloud growth provides recurring revenue.' },
-  AMZN: { desc:'Amazon.com Inc. E-commerce giant plus AWS cloud services. Growth-focused, reinvests profits.', tip:'AWS is the profit engine. Watch for consumer spending trends.' },
-  NVDA: { desc:'NVIDIA Corp. GPU maker dominating AI/ML chip market. Explosive growth tied to AI boom.', tip:'Currently riding the AI wave. High valuation means high expectations — can drop fast if AI hype cools.' },
-  GOOG: { desc:'Alphabet Inc. Google parent company. Search advertising, YouTube, cloud, moonshot projects.', tip:'Advertising revenue is the core business. More stable than it looks.' },
+  KO:   { desc:'The Coca-Cola Company. Global beverage leader. Defensive stock with reliable dividends.', tip:'Consumer staples are resilient in downturns. Good defensive holding.' },
+  WMT:  { desc:'Walmart Inc. Retail giant. Stable, recession-resistant business with consistent cash flow.', tip:'Retail stocks track consumer spending. Stable and predictable performer.' },
+  JNJ:  { desc:'Johnson & Johnson. Diversified healthcare giant across pharmaceuticals, medical devices, and consumer.', tip:'Healthcare stocks are defensive. Resilient during economic downturns.' },
+  XOM:  { desc:'ExxonMobil Corp. Global oil & gas leader. Cyclical stock tied to commodity prices.', tip:'Energy stocks follow oil prices. High dividend yield is a bonus.' },
 }
 const CRYPTO_INFO: Record<CryptoId, { desc: string; tip: string }> = {
-  BTC:  { desc:'Bitcoin. The original cryptocurrency and digital gold. Limited supply of 21 million coins.', tip:'Considered the "safest" crypto due to track record, but still extremely volatile vs traditional assets.' },
-  ETH:  { desc:'Ethereum. Smart contract platform powering DeFi, NFTs, and dApps. More utility than Bitcoin.', tip:'The platform play — if crypto succeeds broadly, ETH likely benefits.' },
-  SOL:  { desc:'Solana. Fast, low-fee blockchain competing with Ethereum. Known for speed but had reliability issues.', tip:'Higher risk than BTC/ETH but potentially higher reward.' },
-  DOGE: { desc:'Dogecoin. Started as a meme, now has real market cap. No supply limit, relies on social media hype.', tip:'Pure speculation. Can 10x or crash 90% based on tweets. Only invest what you\'d spend at a casino.' },
+  BTGD: { desc:'BitGold. Digital gold alternative with limited supply. Store of value proposition.', tip:'Considered the "safest" crypto due to track record, but still extremely volatile vs traditional assets.' },
+  SMTC: { desc:'SmartChain. Smart contract platform powering DeFi and applications. Utility beyond currency.', tip:'The platform play — if crypto succeeds broadly, smart contract platforms likely benefit.' },
+  FSTC: { desc:'FastCoin. High-speed, low-fee blockchain competing for transactions. Known for speed.', tip:'Higher risk than gold alternatives but potentially higher reward.' },
+  MMTK: { desc:'MemeToken. Started as internet humor, now has real market cap. No supply limit, relies on social hype.', tip:'Pure speculation. Can 10x or crash 90% based on sentiment. Only invest what you\'d spend at a casino.' },
 }
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
@@ -101,15 +100,65 @@ function fmtPrice(p:number) {
   return '$'+p.toExponential(2)
 }
 
+// ── House status tile ─────────────────────────────────────────────────────────
+function HouseTile({ state }: { state: GameState }) {
+  const h = state.house
+  if (h) {
+    const equity = h.currentValue - h.mortgageBalance
+    const status = h.movedIn ? 'Living in it' : h.isRentedOut ? 'Renting out' : 'Vacant'
+    return (
+      <div className="inv-tile">
+        <div className="inv-tile-top">
+          <span className="inv-tile-icon">🏠</span>
+          <span className="inv-ret-badge pos">+{(h.appreciationRate*100).toFixed(0)}%/yr</span>
+        </div>
+        <div className="inv-tile-name">REAL ESTATE</div>
+        <div className="inv-tile-val">{fmt(equity)} equity</div>
+        <div className="inv-risk risk-medium">{status.toUpperCase()}</div>
+      </div>
+    )
+  }
+  const pct = Math.min(100, (state.cash / HOUSE_OFFER_CASH_THRESHOLD) * 100)
+  const available = state.cash >= HOUSE_OFFER_CASH_THRESHOLD
+  return (
+    <div className={`inv-tile locked ${available ? 'house-available' : ''}`}>
+      <div className="inv-tile-top">
+        <span className="inv-tile-icon">🏠</span>
+        <span className="inv-ret-badge pos">+4%/yr</span>
+      </div>
+      <div className="inv-tile-name">REAL ESTATE</div>
+      <div className="inv-tile-val">—</div>
+      {available
+        ? <div className="inv-risk" style={{color:'var(--yellow)'}}>OFFER INCOMING!</div>
+        : <div className="inv-risk risk-safe" style={{fontSize:'0.6rem'}}>
+            SAVE {fmt(HOUSE_OFFER_CASH_THRESHOLD - state.cash)} MORE
+            <div className="house-prog-bar"><div className="house-prog-fill" style={{width:`${pct}%`}}/></div>
+          </div>
+      }
+    </div>
+  )
+}
+
 // ── Core investment tile ──────────────────────────────────────────────────────
 interface CoreTileProps {
-  id:CoreInvestmentId; icon:string; name:string; value:number
-  returnRate:string; riskLabel:string; riskClass:string
-  locked:boolean; lockMsg?:string; cash:number; onInvest:(a:number)=>void
+  id: CoreInvestmentId
+  icon: string
+  name: string
+  value: number
+  returnRate: string
+  riskLabel: string
+  riskClass: string
+  locked: boolean
+  lockMsg?: string
+  cash: number
+  canWithdraw?: boolean
+  onInvest: (amount: number) => void
+  onWithdraw: (amount: number) => void
 }
-function CoreTile({ id, icon, name, value, returnRate, riskLabel, riskClass, locked, lockMsg, cash, onInvest }: CoreTileProps) {
-  const [expanded,  setExpanded]  = useState(false)
-  const [showInfo,  setShowInfo]  = useState(false)
+
+function CoreTile({ id, icon, name, value, returnRate, riskLabel, riskClass, locked, lockMsg, cash, canWithdraw, onInvest, onWithdraw }: CoreTileProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
   const isPositive = !returnRate.startsWith('−')
   const info = CORE_INFO[id]
 
@@ -135,12 +184,23 @@ function CoreTile({ id, icon, name, value, returnRate, riskLabel, riskClass, loc
                   +${amt>=1000?amt/1000+'k':amt}
                 </button>
               ))}
-              <button className="inv-btn inv-btn-all" disabled={cash<100} onClick={()=>onInvest(Math.floor(cash*0.9))}>
+              <button className="inv-btn inv-btn-all" disabled={cash < 100} onClick={() => onInvest(Math.floor(cash * 0.9))}>
                 +90%
               </button>
-              <button className="inv-btn inv-btn-done" onClick={()=>setExpanded(false)}>DONE ✓</button>
             </div>
-            {value > 0 && <div className="inv-expand-holding">HOLDING: {fmt(value)}</div>}
+            {canWithdraw && value > 0 && (
+              <div className="inv-expand-btns inv-withdraw-btns">
+                {[500, 1000, 5000].map(amt => (
+                  <button key={amt} className="inv-btn inv-btn-sell" disabled={value < amt} onClick={() => onWithdraw(amt)}>
+                    −${amt >= 1000 ? amt / 1000 + 'k' : amt}
+                  </button>
+                ))}
+                <button className="inv-btn inv-btn-sell inv-btn-all" disabled={value <= 0} onClick={() => onWithdraw(Math.floor(value))}>
+                  −all
+                </button>
+              </div>
+            )}
+            <button className="inv-btn inv-btn-done" onClick={() => setExpanded(false)}>done ✓</button>
           </div>
         )}
       </div>
@@ -153,15 +213,26 @@ function CoreTile({ id, icon, name, value, returnRate, riskLabel, riskClass, loc
   )
 }
 
-// ── Stock/Crypto tile ─────────────────────────────────────────────────────────
+// ── Stock/crypto tile ─────────────────────────────────────────────────────────
+
 interface AssetTileProps {
-  id:StockId|CryptoId; ticker:string; company:string; price:number; sparkline:number[]
-  held:number; cash:number; isCrypto?:boolean; onBuy:(q:number)=>void; onSell:(q:number)=>void
+  id: StockId | CryptoId
+  ticker: string
+  company: string
+  price: number
+  sparkline: number[]
+  held: number
+  cash: number
+  isCrypto?: boolean
+  onBuy: (qty: number) => void
+  onSell: (qty: number) => void
 }
+
 function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto, onBuy, onSell }: AssetTileProps) {
   const [expanded, setExpanded] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
-  const [qty,      setQty]      = useState(1)
+  const [qty, setQty] = useState(isCrypto ? 0.01 : 1)
+  void id
 
   const prev   = sparkline.length >= 2 ? sparkline[sparkline.length-2] : sparkline[0]
   const chgPct = prev > 0 ? ((price-prev)/prev)*100 : 0
@@ -188,11 +259,11 @@ function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto
         )}
 
         {expanded && (
-          <div className="st-expand" onClick={e=>e.stopPropagation()}>
+          <div className="st-expand" onClick={e => e.stopPropagation()}>
             <div className="st-qty-row">
-              <button className="st-qty-btn" onClick={()=>setQty(q=>Math.max(minQty, q-(isCrypto?0.01:1)))}>−</button>
-              <span className="st-qty-val">{isCrypto?qty.toFixed(2):qty}</span>
-              <button className="st-qty-btn" onClick={()=>setQty(q=>q+(isCrypto?0.01:1))}>+</button>
+              <button className="st-qty-btn" onClick={() => setQty(q => Math.max(minQty, parseFloat((q - minQty).toFixed(2))))}>−</button>
+              <span className="st-qty-val">{isCrypto ? qty.toFixed(2) : qty}</span>
+              <button className="st-qty-btn" onClick={() => setQty(q => parseFloat((q + minQty).toFixed(2)))}>+</button>
             </div>
             <div className="st-cost">COST: {fmtPrice(buyCost)}</div>
             <div className="st-expand-btns">
@@ -221,24 +292,24 @@ function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto
 
 // ── CENTER PANEL ──────────────────────────────────────────────────────────────
 interface Props {
-  state:GameState
-  onEventChoice:(c:EventChoice)=>void
-  onCarBuy:()=>void
-  onCarSkip:()=>void
-  onInvestCore:(t:CoreInvestmentId,a:number)=>void
-  onBuyStock:(id:StockId,shares:number)=>void
-  onSellStock:(id:StockId,shares:number)=>void
-  onBuyCrypto:(id:CryptoId,units:number)=>void
-  onSellCrypto:(id:CryptoId,units:number)=>void
+  state: GameState
+  onEventChoice: (c: EventChoice) => void
+  onCarBuy: () => void
+  onCarSkip: () => void
+  onInvestCore: (type: CoreInvestmentId, amount: number) => void
+  onWithdrawCore: (type: CoreInvestmentId, amount: number) => void
+  onBuyStock: (id: StockId, shares: number) => void
+  onSellStock: (id: StockId, shares: number) => void
+  onBuyCrypto: (id: CryptoId, units: number) => void
+  onSellCrypto: (id: CryptoId, units: number) => void
 }
 
 export default function CenterPanel({
   state, onEventChoice, onCarBuy, onCarSkip,
-  onInvestCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
+  onInvestCore, onWithdrawCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
 }: Props) {
-  const nw               = calcNetWorth(state)
-  const cryptoUnlocked   = state.year >= 10
-  const realEstUnlocked  = state.year >= 7
+  const nw = calcNetWorth(state)
+  const cryptoUnlocked = state.year >= 10
 
   return (
     <div className="center-panel">
@@ -273,37 +344,55 @@ export default function CenterPanel({
           <div className="cp-section-line"/>
         </div>
         <div className="inv-grid">
-          <CoreTile id="bank"       icon="🏦" name="Bank Savings"    value={state.bankValue}
-            returnRate="+1.5%/yr" riskLabel="no risk"      riskClass="safe"
-            locked={false} cash={state.cash} onInvest={a=>onInvestCore('bank',a)}/>
-          <CoreTile id="index"      icon="📈" name="Index Fund"      value={state.indexValue}
+          <CoreTile
+            id="bank" icon="🏦" name="Bank Savings" value={state.bankValue}
+            returnRate="+1.5%/yr" riskLabel="no risk" riskClass="safe"
+            locked={false} cash={state.cash} canWithdraw
+            onInvest={amt => onInvestCore('bank', amt)}
+            onWithdraw={amt => onWithdrawCore('bank', amt)}
+          />
+          <CoreTile
+            id="index" icon="📈" name="Index Fund" value={state.indexValue}
             returnRate="+7%/yr avg" riskLabel="medium risk" riskClass="medium"
-            locked={false} cash={state.cash} onInvest={a=>onInvestCore('index',a)}/>
-          <CoreTile id="realEstate" icon="🏡" name="Real Estate"     value={state.realEstateValue}
-            returnRate="+6%/yr" riskLabel="medium risk" riskClass="medium"
-            locked={!realEstUnlocked} lockMsg={`🔒 YR 7 (yr ${state.year})`}
-            cash={state.cash} onInvest={a=>onInvestCore('realEstate',a)}/>
-          <CoreTile id="cryptoPool" icon="🪙" name="Crypto Pool"     value={state.cryptoPoolValue}
-            returnRate="+20%/yr avg" riskLabel="extreme risk" riskClass="extreme"
-            locked={!cryptoUnlocked} lockMsg={`🔒 YR 10 (yr ${state.year})`}
-            cash={state.cash} onInvest={a=>onInvestCore('cryptoPool',a)}/>
+            locked={state.year < 2} lockMsg="🔒 unlocks yr 2"
+            cash={state.cash} canWithdraw
+            onInvest={amt => onInvestCore('index', amt)}
+            onWithdraw={amt => onWithdrawCore('index', amt)}
+          />
+          <HouseTile state={state} />
+          <CoreTile
+            id="cryptoBasket" icon="🪙" name="Crypto Basket" value={state.cryptoBasketValue}
+            returnRate="+22%/yr avg" riskLabel="extreme risk" riskClass="extreme"
+            locked={!cryptoUnlocked} lockMsg={`🔒 unlocks yr 10 (yr ${state.year})`}
+            cash={state.cash} canWithdraw
+            onInvest={amt => onInvestCore('cryptoBasket', amt)}
+            onWithdraw={amt => onWithdrawCore('cryptoBasket', amt)}
+          />
         </div>
       </div>
 
       {/* Stocks */}
       <div className="cp-section">
         <div className="cp-section-hdr">
-          <span>Stocks</span>
+          <span>Stocks {state.year < 2 && <span className="cp-lock-badge">🔒 YR 2</span>}</span>
           <div className="cp-section-line"/>
         </div>
-        <div className="stock-grid">
+        <div className="stock-grid" style={{ opacity:state.year<2?0.4:1, pointerEvents:state.year<2?'none':'auto' }}>
           {STOCK_IDS.map(id => (
-            <AssetTile key={id} id={id} ticker={id} company={STOCK_META[id].name}
-              price={state.stockPrices[id]} sparkline={state.stockSparklines[id]}
-              held={state.stockHeld[id]} cash={state.cash}
-              onBuy={q=>onBuyStock(id,q)} onSell={q=>onSellStock(id,q)}/>
+            <AssetTile
+              key={id} id={id}
+              ticker={STOCK_META[id].fakeTicker}
+              company={STOCK_META[id].name}
+              price={state.stockPrices[id]}
+              sparkline={state.stockSparklines[id]}
+              held={state.stockHeld[id]}
+              cash={state.cash}
+              onBuy={qty => onBuyStock(id, qty)}
+              onSell={qty => onSellStock(id, qty)}
+            />
           ))}
         </div>
+        {state.year < 2 && <div className="cp-lock-msg">STOCKS UNLOCK AT YEAR 2 · WATCH THE MARKET MOVE</div>}
       </div>
 
       {/* Crypto */}

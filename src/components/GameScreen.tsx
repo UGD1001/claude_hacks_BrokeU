@@ -1,7 +1,9 @@
-import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, SideHustleId } from '../types'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, SideHustleId } from '../types'
 import LeftPanel from './LeftPanel'
 import CenterPanel from './CenterPanel'
 import AchievementToast from './AchievementToast'
+import HouseModal from './HouseModal'
+import HouseMoveModal from './HouseMoveModal'
 
 interface Props {
   state: GameState
@@ -9,34 +11,61 @@ interface Props {
   onCarBuy: () => void
   onCarSkip: () => void
   onInvestCore: (type: CoreInvestmentId, amount: number) => void
+  onWithdrawCore: (type: CoreInvestmentId, amount: number) => void
   onBuyStock: (id: StockId, shares: number) => void
   onSellStock: (id: StockId, shares: number) => void
   onBuyCrypto: (id: CryptoId, units: number) => void
   onSellCrypto: (id: CryptoId, units: number) => void
-  onActivateHustle: (id: SideHustleId, cost: number) => void
-  onQuit: () => void
+  onActivateSideHustle: (id: SideHustleId) => void
+  onPurchaseHouse: (option: HouseOption, downPct: number, term: MortgageTerm) => void
+  onDeclineHouse: () => void
+  onMoveIn: () => void
+  onRentOut: () => void
 }
 
 export default function GameScreen({
-  state, onEventChoice, onCarBuy, onCarSkip,
-  onInvestCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
-  onActivateHustle, onQuit,
+  state,
+  onEventChoice, onCarBuy, onCarSkip,
+  onInvestCore, onWithdrawCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
+  onActivateSideHustle,
+  onPurchaseHouse, onDeclineHouse, onMoveIn, onRentOut,
 }: Props) {
+  const currentRent = state.rent + state.rentExtra
+
   return (
     <div className="game-screen">
-      <LeftPanel state={state} onActivateHustle={onActivateHustle} onQuit={onQuit} />
+      <LeftPanel state={state} onActivateSideHustle={onActivateSideHustle} />
       <CenterPanel
         state={state}
         onEventChoice={onEventChoice}
         onCarBuy={onCarBuy}
         onCarSkip={onCarSkip}
         onInvestCore={onInvestCore}
+        onWithdrawCore={onWithdrawCore}
         onBuyStock={onBuyStock}
         onSellStock={onSellStock}
         onBuyCrypto={onBuyCrypto}
         onSellCrypto={onSellCrypto}
       />
       <AchievementToast toasts={state.achievementToasts} />
+
+      {state.showHouseOffer && state.houseOptions && (
+        <HouseModal
+          options={state.houseOptions}
+          playerCash={state.cash}
+          onPurchase={onPurchaseHouse}
+          onDecline={onDeclineHouse}
+        />
+      )}
+
+      {state.showHouseMoveModal && state.house && (
+        <HouseMoveModal
+          house={state.house}
+          currentRent={currentRent}
+          onMoveIn={onMoveIn}
+          onRentOut={onRentOut}
+        />
+      )}
     </div>
   )
 }

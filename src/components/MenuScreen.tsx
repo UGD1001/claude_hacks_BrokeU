@@ -18,11 +18,22 @@ const TITLE = [
   { char: 'U', cls: 'y' },
 ]
 
+function useMSTClock() {
+  const getMST = () => new Date().toLocaleTimeString('en-US', { timeZone: 'America/Denver', hour: 'numeric', minute: '2-digit', hour12: true })
+  const [time, setTime] = useState(getMST)
+  useEffect(() => {
+    const t = setInterval(() => setTime(getMST()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return time
+}
+
 export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionCount, relayConnected }: MenuScreenProps) {
   const [cursorVisible, setCursorVisible] = useState(true)
   const [typedCount, setTypedCount] = useState(0)
   const [showMpHelp, setShowMpHelp] = useState(false)
   const mpHelpRef = useRef<HTMLDivElement>(null)
+  const mstTime = useMSTClock()
 
   useEffect(() => {
     const t = setInterval(() => setCursorVisible(v => !v), 530)
@@ -34,6 +45,18 @@ export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionC
     const t = setTimeout(() => setTypedCount(n => n + 1), 120)
     return () => clearTimeout(t)
   }, [typedCount])
+
+  // Close mp help dropdown when clicking outside
+  useEffect(() => {
+    if (!showMpHelp) return
+    const handler = (e: MouseEvent) => {
+      if (mpHelpRef.current && !mpHelpRef.current.contains(e.target as Node)) {
+        setShowMpHelp(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMpHelp])
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', paddingTop: 60, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
@@ -167,67 +190,27 @@ export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionC
             <span className="menu-btn-cursor" style={{ opacity: cursorVisible ? 1 : 0 }}>▮</span>
           </button>
 
+          {/* Multiplayer row */}
           <div className="menu-mp-row">
-            <button className="menu-btn secondary menu-btn-mp" onClick={onHostGame}>
-              <span className="menu-btn-prompt">⚡</span>
-              Host Lobby
+            <button className="menu-btn-mp" onClick={onHostGame}>
+              HOST LOBBY
             </button>
-            <button
-              className={`menu-btn secondary menu-btn-mp ${sessionCount > 0 ? 'mp-found' : ''}`}
-              onClick={onJoinGame}
-            >
-              <span className="menu-btn-prompt">→</span>
-              Join Game{sessionCount > 0 ? ` (${sessionCount})` : ''}
+            <button className="menu-btn-mp" onClick={onJoinGame}>
+              JOIN GAME{sessionCount > 0 ? ` (${sessionCount})` : ''}
             </button>
-          </div>
-
-          <div className="menu-mp-status">
-            <span style={{ color: relayConnected ? 'var(--green)' : 'var(--red)' }}>
-              {relayConnected ? '● relay connected' : '● relay offline — run: node relay.js'}
-            </span>
-            {relayConnected && (
-              <span style={{ color: sessionCount > 0 ? 'var(--green)' : 'var(--mid)', marginLeft: 12 }}>
-                {sessionCount > 0 ? `● ${sessionCount} lobby${sessionCount !== 1 ? 'ies' : ''} open` : '○ no lobbies yet'}
-              </span>
-            )}
-          </div>
-
-          <button
-            className="menu-mp-help-toggle"
-            onClick={() => setShowMpHelp(v => !v)}
-          >
-            {showMpHelp ? '▲' : '▼'} How does multiplayer work?
-          </button>
-
-          <div
-            ref={mpHelpRef}
-            className="menu-mp-help"
-            style={{ maxHeight: showMpHelp ? mpHelpRef.current?.scrollHeight + 'px' : '0px' }}
-          >
-            <div className="menu-mp-help-inner">
-              <div className="menu-mp-help-step">
-                <span className="menu-mp-help-num">1</span>
-                <span>Everyone opens the game in their own browser window on the <em>same computer</em>.</span>
-              </div>
-              <div className="menu-mp-help-step">
-                <span className="menu-mp-help-num">2</span>
-                <span>Start the relay server first — open a terminal and run <code>npm run relay</code>.</span>
-              </div>
-              <div className="menu-mp-help-step">
-                <span className="menu-mp-help-num">3</span>
-                <span>One player clicks <strong>Host Lobby</strong>, fills out setup, and lands in the lobby. Share the 6-character session code shown there.</span>
-              </div>
-              <div className="menu-mp-help-step">
-                <span className="menu-mp-help-num">4</span>
-                <span>Other players click <strong>Join Game</strong>, enter their name and the session code, then fill out their own setup.</span>
-              </div>
-              <div className="menu-mp-help-step">
-                <span className="menu-mp-help-num">5</span>
-                <span>Once everyone is in the lobby, the host clicks <strong>Start Game</strong>. All windows start simultaneously with the same market seed.</span>
-              </div>
-              <div className="menu-mp-help-note">
-                ⚠ The relay server must keep running for the whole session. Each player plays independently — the leaderboard updates live across windows.
-              </div>
+            <div className="menu-mp-help-wrap" ref={mpHelpRef}>
+              <button className="menu-btn-mp menu-btn-mp-help" onClick={() => setShowMpHelp(v => !v)} title="Multiplayer info">?</button>
+              {showMpHelp && (
+                <div className="menu-mp-help">
+                  <strong>Local multiplayer</strong><br />
+                  One player hosts, others join on separate devices on the same network. Requires the relay server (<code>node relay.js</code>) to be running locally.
+                  <div className="menu-mp-relay">
+                    Relay: <span style={{ color: relayConnected ? 'var(--green)' : 'var(--red)' }}>
+                      {relayConnected ? '● connected' : '○ offline'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -243,7 +226,7 @@ export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionC
         display:'flex', alignItems:'center', gap:32,
       }}>
         <span style={{ fontSize:6, letterSpacing:'0.1em', color:'#63787d', textTransform:'uppercase' }}>▶ DORM ROOM 214 · WESTBROOK HALL</span>
-        <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:11, color:'#c9cca1', textShadow:'2px 2px 0 #543344' }}>2:47 AM · YEAR 01</span>
+        <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:11, color:'#c9cca1', textShadow:'2px 2px 0 #543344' }}>{mstTime} MST · YEAR 01</span>
         <span style={{ fontSize:6, color:'#8ea091', lineHeight:2 }}>PHASE 1: RACE TO $25,000 · BUY A CAR</span>
       </div>
     </div>

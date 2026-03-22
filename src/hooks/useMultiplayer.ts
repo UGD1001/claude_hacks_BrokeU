@@ -96,7 +96,7 @@ export function useMultiplayer(
               ...prev,
               remotePlayers: prev.remotePlayers.map(p =>
                 p.id === msg.playerId
-                  ? { ...p, name: msg.playerName, netWorth: msg.netWorth, carOwned: msg.carOwned, year: msg.year, lastSeen: now }
+                  ? { ...p, name: msg.playerName, netWorth: msg.netWorth, carOwned: msg.carOwned, year: msg.year }
                   : p
               ),
             }
@@ -106,7 +106,7 @@ export function useMultiplayer(
             remotePlayers: [...prev.remotePlayers, {
               id: msg.playerId, name: msg.playerName,
               netWorth: msg.netWorth, carOwned: msg.carOwned,
-              year: msg.year, lastSeen: now,
+              year: msg.year,
             }],
           }
         })
@@ -121,8 +121,8 @@ export function useMultiplayer(
         if (mpRoleRef.current !== 'client') return
         setGameState(prev => {
           if (prev.screen !== 'game') return prev
-          const drift = Math.abs(prev.timeToNextYear - msg.timeToNextYear)
-          if (drift > 3 && prev.year === msg.year) return { ...prev, timeToNextYear: msg.timeToNextYear }
+          const drift = Math.abs(prev.timeToNextHalfYear - msg.timeToNextYear)
+          if (drift > 3 && prev.year === msg.year) return { ...prev, timeToNextHalfYear: msg.timeToNextYear }
           return prev
         })
       }
@@ -232,7 +232,7 @@ export function useMultiplayer(
           wsRef.current.send(JSON.stringify({
             type: 'TIMER_SYNC',
             year: prev.year,
-            timeToNextYear: prev.timeToNextYear,
+            timeToNextYear: prev.timeToNextHalfYear,
           } satisfies MPMsg))
         }
         return prev
@@ -268,6 +268,7 @@ function calcNetWorthLocal(s: GameState): number {
   const cryptoVal = Object.entries(s.cryptoHeld).reduce(
     (acc, [id, held]) => acc + (held as number) * (s.cryptoPrices[id as keyof typeof s.cryptoPrices] ?? 0), 0
   )
-  return s.cash + s.bankValue + s.indexValue + s.realEstateValue + s.cryptoPoolValue + stocksVal + cryptoVal
-    + (s.carOwned ? s.carValue : 0) - s.tuitionRemaining - s.loanDebt
+  const houseEquity = s.house ? (s.house.currentValue - s.house.mortgageBalance) : 0
+  return s.cash + s.bankValue + s.indexValue + s.cryptoBasketValue + stocksVal + cryptoVal
+    + houseEquity + (s.carOwned ? s.carValue : 0) - s.tuitionRemaining - s.loanDebt
 }
