@@ -17,8 +17,7 @@ interface Props {
 }
 
 export default function GameScreen({
-  state,
-  onEventChoice, onCarBuy, onCarSkip,
+  state, onEventChoice, onCarBuy, onCarSkip,
   onInvestCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
   onActivateHustle,
 }: Props) {
