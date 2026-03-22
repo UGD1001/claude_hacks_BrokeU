@@ -1628,9 +1628,11 @@ body {
 .lp-label {
   font-size: 8px;
   letter-spacing: 0.22em;
+  font-family: 'IBM Plex Mono', monospace;
   color: var(--blue);
   text-transform: uppercase;
 }
+
 
 .lp-kv {
   display: flex;
@@ -2027,7 +2029,6 @@ body {
 .reveal-ret.neg { color: var(--red); }
 
 
-/* ── TUTORIAL OVERLAY (from master) ── */
 /* Slide 6: Trophy */
 .tut-trophy {
   display: flex;
@@ -2135,4 +2136,273 @@ body {
   border-color: var(--mid);
   color: var(--mid);
   background: transparent;
+}
+
+/* ── Multiplayer menu row ── */
+.menu-mp-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+.menu-btn-mp {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 8px 14px;
+  background: rgba(81,82,98,0.18);
+  border: 1px solid var(--slate);
+  color: var(--dsage);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.menu-btn-mp:hover {
+  background: rgba(81,82,98,0.36);
+  color: var(--sage);
+}
+.menu-btn-mp-help {
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.menu-mp-help-wrap {
+  position: relative;
+}
+.menu-mp-help {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 260px;
+  background: var(--bg2);
+  border: 1px solid var(--slate);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--dsage);
+  line-height: 1.6;
+  z-index: 100;
+}
+.menu-mp-help code {
+  color: var(--amber);
+  background: rgba(0,0,0,0.3);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.menu-mp-relay {
+  margin-top: 8px;
+  font-size: 0.68rem;
+}
+
+/* ── Lobby screen ── */
+.lobby-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px 40px;
+  background: var(--ink);
+}
+.lobby-card {
+  width: 440px;
+  max-width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--slate);
+  border-top: 3px solid var(--amber);
+  border-radius: 6px;
+  padding: 28px 28px 24px;
+}
+.lobby-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--teal);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.lobby-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  color: var(--amber);
+  margin-bottom: 20px;
+}
+.lobby-session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--slate);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.lobby-session-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--mid);
+  letter-spacing: 0.1em;
+}
+.lobby-session-id {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.2em;
+}
+.lobby-how-to {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lobby-how-step {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--dsage);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.lobby-how-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--amber);
+  color: var(--bg3);
+  font-weight: 700;
+  font-size: 0.6rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.lobby-info {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--mid);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.lobby-players-header {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--mid);
+  margin-bottom: 8px;
+}
+.lobby-players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+.lobby-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(81,82,98,0.12);
+  border: 1px solid var(--darker);
+  border-radius: 3px;
+}
+.lobby-player.me {
+  border-color: var(--amber);
+  background: rgba(202,160,90,0.08);
+}
+.lobby-player-dot {
+  font-size: 0.5rem;
+  color: var(--dsage);
+}
+.lobby-player.me .lobby-player-dot {
+  color: var(--amber);
+}
+.lobby-player-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--sage);
+  flex: 1;
+}
+.lobby-you {
+  font-style: normal;
+  color: var(--amber);
+}
+.lobby-host {
+  font-style: normal;
+  color: var(--teal);
+}
+.lobby-player-ready {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--dsage);
+  letter-spacing: 0.08em;
+}
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lobby-start-btn {
+  width: 100%;
+}
+
+/* ── Join modal ── */
+.join-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(6,4,14,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.join-modal {
+  width: 340px;
+  max-width: 94vw;
+  background: var(--bg2);
+  border: 1px solid var(--slate);
+  border-top: 3px solid var(--amber);
+  border-radius: 6px;
+  padding: 24px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.join-modal-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.1em;
+}
+.join-modal-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--mid);
+  letter-spacing: 0.08em;
+}
+.join-modal-input {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--slate);
+  border-radius: 3px;
+  color: var(--sage);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.join-modal-input:focus {
+  border-color: var(--amber);
+}
+.join-modal-error {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--red);
+}
+.join-modal-actions {
+  display: flex;
+  gap: 8px;
 }

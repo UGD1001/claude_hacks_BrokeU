@@ -1,4 +1,23 @@
-export type Screen = 'menu' | 'setup' | 'game' | 'endgame'
+export type Screen = 'menu' | 'setup' | 'lobby' | 'game' | 'endgame'
+export type MPRole = 'solo' | 'host' | 'client'
+
+export interface RemotePlayer {
+  id:        string
+  name:      string
+  netWorth:  number
+  carOwned:  boolean
+  year:      number
+}
+
+export type MPMsg =
+  | { type: 'PLAYER_UPDATE'; playerId: string; name: string; netWorth: number; carOwned: boolean; year: number }
+  | { type: 'GAME_START'; sessionId: string; seed: number }
+  | { type: 'PLAYER_JOIN'; sessionId: string; playerId: string; playerName: string }
+  | { type: 'PLAYER_LEAVE'; playerId: string }
+  | { type: 'HOST_ANNOUNCE'; sessionId: string; hostId: string; hostName: string }
+  | { type: 'LOBBY_SYNC'; sessionId: string; players: { id: string; name: string }[] }
+  | { type: 'PLAYER_STATE'; playerId: string; playerName: string; netWorth: number; carOwned: boolean; year: number }
+  | { type: 'TIMER_SYNC'; year: number; timeToNextYear: number }
 export type GameMode = 'standard' | 'sprint'
 export type MarketCondition = 'bull' | 'bear' | 'neutral'
 
@@ -199,7 +218,15 @@ export interface GameState {
   // ── Historical data era ───────────────────────────────────────────────────────
   gameStartDate: string  // e.g. "1999-01" — determines which real-world era is played
 
+  // ── Multiplayer ───────────────────────────────────────────────────────────────
+  mpRole:        MPRole
+  mpSessionId:   string
+  mpPlayerId:    string
+  mpSessionSeed: number
+  remotePlayers: RemotePlayer[]
+
   // ── End state ────────────────────────────────────────────────────────────────
   gameOverReason: string
-  playerWon:      boolean
+  playerWon: boolean
+
 }

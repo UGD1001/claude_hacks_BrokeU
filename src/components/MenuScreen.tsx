@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface MenuScreenProps {
   onNewGame: () => void
+  onHostGame: () => void
+  onJoinGame: () => void
+  sessionCount: number
+  relayConnected: boolean
 }
 
 const TITLE = [
@@ -24,9 +28,11 @@ function useMSTClock() {
   return time
 }
 
-export default function MenuScreen({ onNewGame }: MenuScreenProps) {
+export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionCount, relayConnected }: MenuScreenProps) {
   const [cursorVisible, setCursorVisible] = useState(true)
   const [typedCount, setTypedCount] = useState(0)
+  const [showMpHelp, setShowMpHelp] = useState(false)
+  const mpHelpRef = useRef<HTMLDivElement>(null)
   const mstTime = useMSTClock()
 
   useEffect(() => {
@@ -39,6 +45,18 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
     const t = setTimeout(() => setTypedCount(n => n + 1), 120)
     return () => clearTimeout(t)
   }, [typedCount])
+
+  // Close mp help dropdown when clicking outside
+  useEffect(() => {
+    if (!showMpHelp) return
+    const handler = (e: MouseEvent) => {
+      if (mpHelpRef.current && !mpHelpRef.current.contains(e.target as Node)) {
+        setShowMpHelp(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMpHelp])
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', paddingTop: 60, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
@@ -157,19 +175,44 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
         </p>
 
         <div className="menu-feature-list">
-          <div className="menu-feature"><span className="menu-feature-icon">→</span>20-year sim · 1 real min = 1 year</div>
-          <div className="menu-feature"><span className="menu-feature-icon">$</span>Stocks, index funds, real estate, crypto</div>
-          <div className="menu-feature"><span className="menu-feature-icon">×</span>Race against a computer opponent</div>
-          <div className="menu-feature"><span className="menu-feature-icon">!</span>15 life events that test every decision</div>
-          <div className="menu-feature"><span className="menu-feature-icon">?</span>Finance Codex — 24 entries to unlock</div>
+          <div className="menu-feature"><span className="menu-feature-icon">→</span> 20-year simulation · 1 real minute = 1 year</div>
+          <div className="menu-feature"><span className="menu-feature-icon">$</span> Stocks, index funds, real estate, crypto</div>
+          <div className="menu-feature"><span className="menu-feature-icon">×</span> Race against a computer opponent</div>
+          <div className="menu-feature"><span className="menu-feature-icon">!</span> 15 life events that test your decisions</div>
+          <div className="menu-feature"><span className="menu-feature-icon">⚡</span> Up to 5 players on the same machine</div>
+          <div className="menu-feature"><span className="menu-feature-icon">?</span> Finance Codex — 24 entries to unlock</div>
         </div>
 
         <div className="menu-buttons">
           <button className="menu-btn primary" onClick={onNewGame}>
             <span className="menu-btn-prompt">&gt;_</span>
             START SURVIVING
-            <span className="menu-btn-cursor" style={{ opacity: cursorVisible ? 1 : 0 }}>█</span>
+            <span className="menu-btn-cursor" style={{ opacity: cursorVisible ? 1 : 0 }}>▮</span>
           </button>
+
+          {/* Multiplayer row */}
+          <div className="menu-mp-row">
+            <button className="menu-btn-mp" onClick={onHostGame}>
+              HOST LOBBY
+            </button>
+            <button className="menu-btn-mp" onClick={onJoinGame}>
+              JOIN GAME{sessionCount > 0 ? ` (${sessionCount})` : ''}
+            </button>
+            <div className="menu-mp-help-wrap" ref={mpHelpRef}>
+              <button className="menu-btn-mp menu-btn-mp-help" onClick={() => setShowMpHelp(v => !v)} title="Multiplayer info">?</button>
+              {showMpHelp && (
+                <div className="menu-mp-help">
+                  <strong>Local multiplayer</strong><br />
+                  One player hosts, others join on separate devices on the same network. Requires the relay server (<code>node relay.js</code>) to be running locally.
+                  <div className="menu-mp-relay">
+                    Relay: <span style={{ color: relayConnected ? 'var(--green)' : 'var(--red)' }}>
+                      {relayConnected ? '● connected' : '○ offline'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

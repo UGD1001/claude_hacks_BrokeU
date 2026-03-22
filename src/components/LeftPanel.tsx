@@ -35,8 +35,13 @@ export default function LeftPanel({ state, onActivateSideHustle }: Props) {
   const codexUnlockedEntries = CODEX_ENTRIES.filter(e => state.codexUnlocked.includes(e.id))
   const detailEntry = codexId ? CODEX_ENTRIES.find(e => e.id === codexId) : null
 
+  const remoteLbEntries = state.mpRole !== 'solo'
+    ? state.remotePlayers.map(p => ({ label: p.name || 'Player', nw: p.netWorth, isMe: false, car: p.carOwned, house: false }))
+    : []
+
   const lbEntries = [
     { label: state.playerName || 'You', nw, isMe: true, car: state.carOwned, house: !!state.house },
+    ...remoteLbEntries,
     { label: 'Computer', nw: compNW, isMe: false, car: state.compCarOwned, house: !!state.compHouse },
   ].sort((a, b) => b.nw - a.nw)
 
