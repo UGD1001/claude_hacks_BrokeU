@@ -1,5 +1,5 @@
 import type { GameState } from '../types'
-import { calcNetWorth, calcCompNetWorth, STOCK_IDS, CRYPTO_IDS, GLOSSARY_ENTRIES } from '../gameData'
+import { calcNetWorth, calcCompNetWorth, STOCK_IDS, CRYPTO_IDS, GLOSSARY_ENTRIES, STOCK_META, TOTAL_YEARS, getRealPrice, getCalendarDate } from '../gameData'
 
 interface Props {
   state: GameState
@@ -167,6 +167,60 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
           ))}
         </div>
       )}
+
+      {/* Era reveal */}
+      {(() => {
+        const startYear = parseInt(state.gameStartDate.slice(0, 4))
+        const endYear   = startYear + TOTAL_YEARS
+        const endDate   = getCalendarDate(state.gameStartDate, TOTAL_YEARS * 2)
+        const spyStart  = getRealPrice('SPY', state.gameStartDate)
+        const spyEnd    = getRealPrice('SPY', endDate)
+        const spyReturn = spyStart && spyEnd ? ((spyEnd - spyStart) / spyStart * 100) : null
+        return (
+          <div className="endgame-reveal">
+            <div className="endgame-reveal-title">🔓 ERA REVEALED</div>
+            <div className="endgame-reveal-period">
+              You just played the <strong>{startYear} – {endYear}</strong> era
+            </div>
+            <div className="endgame-reveal-sub">
+              The stocks were real — only the names were hidden.
+            </div>
+            <div className="endgame-reveal-grid">
+              {STOCK_IDS.map(id => {
+                const meta       = STOCK_META[id]
+                const startPrice = getRealPrice(id, state.gameStartDate)
+                const endPrice   = getRealPrice(id, endDate)
+                const ret        = startPrice && endPrice
+                  ? ((endPrice - startPrice) / startPrice * 100)
+                  : null
+                const pos = ret !== null && ret >= 0
+                return (
+                  <div key={id} className="endgame-reveal-row">
+                    <span className="reveal-fake">{meta.fakeTicker}</span>
+                    <span className="reveal-arrow">→</span>
+                    <span className="reveal-real">{meta.realName} <span className="reveal-ticker">({meta.realTicker})</span></span>
+                    {ret !== null && (
+                      <span className={`reveal-ret ${pos ? 'pos' : 'neg'}`}>
+                        {pos ? '+' : ''}{ret.toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+              {spyReturn !== null && (
+                <div className="endgame-reveal-row index-row">
+                  <span className="reveal-fake">INDEX</span>
+                  <span className="reveal-arrow">→</span>
+                  <span className="reveal-real">S&amp;P 500 <span className="reveal-ticker">(SPY)</span></span>
+                  <span className={`reveal-ret ${spyReturn >= 0 ? 'pos' : 'neg'}`}>
+                    {spyReturn >= 0 ? '+' : ''}{spyReturn.toFixed(0)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Financial Glossary */}
       <div className="endgame-glossary">

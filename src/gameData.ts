@@ -1,4 +1,34 @@
 import type { StockId, CryptoId, GameEvent, GameState, HouseOption, MortgageTerm } from './types'
+import rawGameStocks from './data/gameStocks.json'
+
+// Typed access to the real historical price data
+const GAME_STOCKS = rawGameStocks as Record<string, Record<string, number | null>>
+
+// ── Real-data helpers ──────────────────────────────────────────────────────────
+
+/** Map (startDate, halfYearsElapsed) → "YYYY-MM" */
+export function getCalendarDate(startDate: string, halfYearsElapsed: number): string {
+  const [y, m] = startDate.split('-').map(Number)
+  const totalMonths = y * 12 + (m - 1) + halfYearsElapsed * 6
+  const year  = Math.floor(totalMonths / 12)
+  const month = (totalMonths % 12) + 1
+  return `${year}-${String(month).padStart(2, '0')}`
+}
+
+/** Look up a real price; null if not yet in data */
+export function getRealPrice(ticker: string, date: string): number | null {
+  const month = GAME_STOCKS[date]
+  if (!month) return null
+  const v = month[ticker]
+  return typeof v === 'number' ? v : null
+}
+
+/** Pick a random game-start month (1993-01 to 2005-01, step 1yr) */
+export function pickGameStartDate(): string {
+  const years = [1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005]
+  const year = years[Math.floor(Math.random() * years.length)]
+  return `${year}-01`
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 export const TOTAL_YEARS      = 20
@@ -13,8 +43,8 @@ export const SPRINT_HALF_YEARS = 20   // max 10 real minutes (20 half-years = 10
 export const ANNUAL_SALARY_GROWTH      = 0.02   // 2% salary increase per year
 export const ANNUAL_EXPENSE_INFLATION  = 0.015  // 1.5% expense inflation per year
 
-// Ticker arrays (anonymised)
-export const STOCK_IDS:  StockId[]  = ['TGNX', 'EVMX', 'CLDX', 'RTLX', 'AICX', 'DSRX']
+// Real stock tickers — diversified across sectors
+export const STOCK_IDS:  StockId[]  = ['AAPL', 'MSFT', 'KO', 'WMT', 'JNJ', 'XOM']
 export const CRYPTO_IDS: CryptoId[] = ['BTGD', 'SMTC', 'FSTC', 'MMTK']
 
 // Computer profile
@@ -23,15 +53,23 @@ export const COMP_RENT     = 1_200
 export const COMP_EXPENSES = 800
 export const COMP_TUITION  = 15_000
 
-// ── Anonymised stock data ──────────────────────────────────────────────────────
+// ── Real stock metadata ────────────────────────────────────────────────────────
+// During gameplay: show fakeTicker + name. Revealed only on the end screen.
 
-export const STOCK_META: Record<StockId, { name: string; sector: string; price: number }> = {
-  TGNX: { name: 'TechGiant',   sector: 'Technology',   price: 174  },
-  EVMX: { name: 'EV Motors',   sector: 'Automotive',   price: 248  },
-  CLDX: { name: 'CloudCorp',   sector: 'Cloud / SaaS', price: 412  },
-  RTLX: { name: 'RetailMax',   sector: 'Retail',       price: 186  },
-  AICX: { name: 'AI Chip Co',  sector: 'Semiconductors', price: 892 },
-  DSRX: { name: 'DataSearch',  sector: 'Search / Data', price: 138 },
+export const STOCK_META: Record<StockId, {
+  name: string        // fake company name shown during game
+  fakeTicker: string  // fake ticker shown during game
+  sector: string
+  price: number       // fallback only; real prices loaded from gameStocks.json
+  realName: string    // revealed at end
+  realTicker: string  // revealed at end (same as StockId key)
+}> = {
+  AAPL: { name: 'NovaTech',  fakeTicker: 'NVTK', sector: 'Technology',  price: 10, realName: 'Apple',             realTicker: 'AAPL' },
+  MSFT: { name: 'PeakSoft',  fakeTicker: 'PKSR', sector: 'Technology',  price: 10, realName: 'Microsoft',         realTicker: 'MSFT' },
+  KO:   { name: 'RefreshCo', fakeTicker: 'RFCO', sector: 'Consumer',    price: 5,  realName: 'Coca-Cola',         realTicker: 'KO'   },
+  WMT:  { name: 'MegaMart',  fakeTicker: 'MMRT', sector: 'Retail',      price: 5,  realName: 'Walmart',           realTicker: 'WMT'  },
+  JNJ:  { name: 'CareGroup', fakeTicker: 'CRGP', sector: 'Healthcare',  price: 10, realName: 'Johnson & Johnson', realTicker: 'JNJ'  },
+  XOM:  { name: 'FuelCorp',  fakeTicker: 'FLCO', sector: 'Energy',      price: 5,  realName: 'ExxonMobil',        realTicker: 'XOM'  },
 }
 
 export const CRYPTO_META: Record<CryptoId, { name: string; price: number }> = {
@@ -63,15 +101,31 @@ function genSparkline(price: number, variance: number): number[] {
   return pts
 }
 
-export function makeInitialMarketData() {
+/** Build an 8-point sparkline from real historical half-year prices (going back 7 half-years) */
+function genRealSparkline(ticker: string, startDate: string): number[] {
+  const pts: number[] = []
+  for (let i = -7; i <= 0; i++) {
+    const date  = getCalendarDate(startDate, i)
+    const price = getRealPrice(ticker, date)
+    if (price !== null) pts.push(price)
+  }
+  if (pts.length < 2) {
+    const fallback = getRealPrice(ticker, startDate) ?? STOCK_META[ticker as StockId]?.price ?? 10
+    return Array.from({ length: 8 }, (_, i) => fallback * (0.82 + i * 0.025))
+  }
+  return pts
+}
+
+export function makeInitialMarketData(startDate: string) {
   const stockPrices      = {} as Record<StockId,  number>
   const stockSparklines  = {} as Record<StockId,  number[]>
   const cryptoPrices     = {} as Record<CryptoId, number>
   const cryptoSparklines = {} as Record<CryptoId, number[]>
 
   for (const id of STOCK_IDS) {
-    stockPrices[id]     = STOCK_META[id].price
-    stockSparklines[id] = genSparkline(STOCK_META[id].price, 0.20)
+    const realPrice     = getRealPrice(id, startDate) ?? STOCK_META[id].price
+    stockPrices[id]     = realPrice
+    stockSparklines[id] = genRealSparkline(id, startDate)
   }
   for (const id of CRYPTO_IDS) {
     cryptoPrices[id]     = CRYPTO_META[id].price

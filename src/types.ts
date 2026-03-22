@@ -2,8 +2,8 @@ export type Screen = 'menu' | 'setup' | 'game' | 'endgame'
 export type GameMode = 'standard' | 'sprint'
 export type MarketCondition = 'bull' | 'bear' | 'neutral'
 
-// Anonymised tickers
-export type StockId   = 'TGNX' | 'EVMX' | 'CLDX' | 'RTLX' | 'AICX' | 'DSRX'
+// Real stock tickers
+export type StockId   = 'AAPL' | 'MSFT' | 'KO' | 'WMT' | 'JNJ' | 'XOM'
 export type CryptoId  = 'BTGD' | 'SMTC' | 'FSTC' | 'MMTK'
 export type SideHustleId = 'freelance' | 'store' | 'content' | 'digital' | 'rental'
 export type CoreInvestmentId = 'bank' | 'index' | 'cryptoBasket'
@@ -179,6 +179,7 @@ export interface GameState {
   compCarOwned: boolean
   compCarValue: number
   compTuitionRemaining: number
+  compSalaryMultiplier: number  // grows at same base rate as player (2%/yr), unaffected by events
   compHouse: CompHouse | null
   compHouseBought: boolean   // flag so it buys once
 
@@ -193,6 +194,10 @@ export interface GameState {
   // ── Toasts & achievements ────────────────────────────────────────────────────
   achievementToasts: AchievementToastItem[]
   achievementsUnlocked: string[]
+
+  // ── End state ────────────────────────────────────────────────────────────────
+  // ── Historical data era ───────────────────────────────────────────────────────
+  gameStartDate: string  // e.g. "1999-01" — determines which real-world era is played
 
   // ── End state ────────────────────────────────────────────────────────────────
   gameOverReason: string

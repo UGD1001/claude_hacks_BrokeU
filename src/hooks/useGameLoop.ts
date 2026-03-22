@@ -8,7 +8,7 @@ import {
   HOUSE_OPTIONS, HOUSE_OFFER_CASH_THRESHOLD,
   computeMonthlyPayment, MORTGAGE_RATES,
   calcNetWorth, calcCompNetWorth, getSideHustleAnnualIncome,
-  COMP_SALARY, COMP_RENT, COMP_EXPENSES, COMP_TUITION,
+  getCalendarDate, getRealPrice,
 } from '../gameData'
 
 const TICK_MS  = 250
@@ -86,10 +86,10 @@ function applyMonthlyStockUpdate(prev: GameState): GameState {
 
   const cond = s.marketCondition
 
-  // Stocks: update every month (small monthly variance, influenced by market condition)
+  // Stocks: tiny cosmetic noise between half-year ticks (real prices snap at half-year boundary)
   for (const id of STOCK_IDS) {
-    const ret = rolledReturn(MARKET_PARAMS.stocks.base / 12, MARKET_PARAMS.stocks.variance / 3, 'normal', cond)
-    s.stockPrices[id] = Math.max(1, s.stockPrices[id] * (1 + ret))
+    const noise = (Math.random() - 0.5) * 0.008  // ±0.4% visual flutter only
+    s.stockPrices[id] = Math.max(0.01, s.stockPrices[id] * (1 + noise))
     s.stockSparklines = {
       ...s.stockSparklines,
       [id]: [...s.stockSparklines[id].slice(1), s.stockPrices[id]],
@@ -188,12 +188,32 @@ function applyHalfYearTick(prev: GameState): GameState {
   const cond = s.marketCondition
 
   // ── 1. Half-year investment returns ───────────────────────────────────────
-  // Applied each half-year as half the annual rate, factoring in market condition
+  // Bank: synthetic (risk-free savings rate)
   if (s.bankValue > 0)
-    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal', 'neutral')  // bank unaffected by condition
+    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal', 'neutral')
 
-  if (s.indexValue > 0)
-    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent, cond)
+  // Real stock prices — snap to actual historical data at each half-year boundary
+  {
+    const currentDate = getCalendarDate(s.gameStartDate, halfYear)
+    const prevDate    = getCalendarDate(s.gameStartDate, halfYear - 1)
+    for (const id of STOCK_IDS) {
+      const newPrice = getRealPrice(id, currentDate)
+      if (newPrice !== null && newPrice > 0) {
+        s.stockPrices[id] = newPrice
+        s.stockSparklines[id] = [...s.stockSparklines[id].slice(1), newPrice]
+      }
+    }
+
+    // Index fund: real SPY return; fallback to synthetic if SPY data missing
+    const spyNew  = getRealPrice('SPY', currentDate)
+    const spyPrev = getRealPrice('SPY', prevDate)
+    if (spyNew !== null && spyPrev !== null && spyPrev > 0 && s.indexValue > 0) {
+      const spyReturn = (spyNew - spyPrev) / spyPrev
+      s.indexValue *= (1 + spyReturn)
+    } else if (s.indexValue > 0) {
+      s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent, cond)
+    }
+  }
 
   if (year >= 10 && s.cryptoBasketValue > 0)
     s.cryptoBasketValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoBasket.base / 2, MARKET_PARAMS.cryptoBasket.variance / 2,
@@ -238,8 +258,9 @@ function applyHalfYearTick(prev: GameState): GameState {
 
   // ── 5. Year-only actions (run once per year on 2nd half) ──────────────────
   if (isNewYear) {
-    // Salary growth (+2%/yr automatic raises)
-    s.salaryMultiplier *= (1 + ANNUAL_SALARY_GROWTH)
+    // Salary growth (+2%/yr automatic raises) — applied to both player and computer
+    s.salaryMultiplier     *= (1 + ANNUAL_SALARY_GROWTH)
+    s.compSalaryMultiplier *= (1 + ANNUAL_SALARY_GROWTH)
 
     // Expense inflation (+1.5%/yr)
     s.expensesExtra += s.monthlyExpenses * ANNUAL_EXPENSE_INFLATION
@@ -296,19 +317,31 @@ function applyHalfYearTick(prev: GameState): GameState {
     if (!s.compHouse || s.compHouse.mortgageMonthsPaid >= s.compHouse.mortgageTotalMonths) return 0
     return s.compHouse.monthlyPayment * 6
   })()
-  const compApartmentRent = s.compHouse ? 0 : COMP_RENT * 6   // computer always moves in
+  // Computer mirrors player's base salary/rent/expenses (same financial background)
+  const compApartmentRent = s.compHouse ? 0 : s.rent * 6
+  const compHalfSalary    = (s.salary * s.compSalaryMultiplier) / 2
 
-  const compHalfSurplus = COMP_SALARY / 2
+  const compHalfSurplus = compHalfSalary
     - compApartmentRent
-    - COMP_EXPENSES * 6
+    - s.monthlyExpenses * 6
     - compTuitionPmt
     - compMortgagePmt
 
   s.compTuitionRemaining = Math.max(0, s.compTuitionRemaining - compTuitionPmt)
   s.compCash += compHalfSurplus
 
-  // Index fund returns (half-year)
-  s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent)
+  // Index fund returns — same real SPY return as player (both face identical market)
+  {
+    const currentDate = getCalendarDate(s.gameStartDate, halfYear)
+    const prevDate    = getCalendarDate(s.gameStartDate, halfYear - 1)
+    const spyNew  = getRealPrice('SPY', currentDate)
+    const spyPrev = getRealPrice('SPY', prevDate)
+    if (spyNew !== null && spyPrev !== null && spyPrev > 0 && s.compIndexValue > 0) {
+      s.compIndexValue *= (1 + (spyNew - spyPrev) / spyPrev)
+    } else if (s.compIndexValue > 0) {
+      s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent)
+    }
+  }
 
   // Surplus into index
   if (s.compCash > 2000) {
@@ -621,5 +654,3 @@ export function applyHouseRentOut(prev: GameState): GameState {
   return ns
 }
 
-// Keep COMP_TUITION referenced so TS doesn't strip the import
-void COMP_TUITION

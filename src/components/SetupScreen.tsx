@@ -51,7 +51,7 @@ export default function SetupScreen({ onStart, onBack }: Props) {
   }
   const diff = diffLabel()
 
-  const compAnnualNet = 50000 - 1200 * 12 - 800 * 12 - 1000  // ~$25k/yr
+  const compAnnualNet = salary - rent * 12 - expenses * 12 - Math.min(tuition, 1000)
 
   return (
     <div className="setup-screen">
@@ -210,26 +210,30 @@ export default function SetupScreen({ onStart, onBack }: Props) {
           <div className="setup-preview-block">
             <div className="setup-preview-row">
               <span>Salary</span>
-              <span className="pos">+$4,167/mo</span>
+              <span className="pos">+{fmtMo(salary / 12)}</span>
             </div>
             <div className="setup-preview-row">
               <span>Rent</span>
-              <span className="neg">−$1,200/mo</span>
+              <span className="neg">−{fmtMo(rent)}</span>
             </div>
             <div className="setup-preview-row">
               <span>Expenses</span>
-              <span className="neg">−$800/mo</span>
+              <span className="neg">−{fmtMo(expenses)}</span>
             </div>
-            <div className="setup-preview-row">
-              <span>Tuition ($1k/yr)</span>
-              <span className="neg">−$83/mo</span>
-            </div>
+            {tuition > 0 && (
+              <div className="setup-preview-row">
+                <span>Tuition (${Math.min(tuition, 1000).toLocaleString()}/yr)</span>
+                <span className="neg">−{fmtMo(Math.min(tuition, 1000) / 12)}</span>
+              </div>
+            )}
             <div className="setup-preview-divider" />
             <div className="setup-preview-row net">
               <span>Net / month</span>
-              <span style={{ color: 'var(--green)' }}>+{fmtMo(compAnnualNet / 12)}</span>
+              <span style={{ color: compAnnualNet / 12 >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                {compAnnualNet / 12 >= 0 ? '+' : ''}{fmtMo(compAnnualNet / 12)}
+              </span>
             </div>
-            <div className="setup-comp-note">Strategy: All surplus → index fund</div>
+            <div className="setup-comp-note">Same profile · strategy: all surplus → index fund</div>
           </div>
         </div>
       </div>

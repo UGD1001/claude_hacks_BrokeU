@@ -272,7 +272,7 @@ export default function CenterPanel({
           {STOCK_IDS.map(id => (
             <AssetTile
               key={id} id={id}
-              ticker={id}
+              ticker={STOCK_META[id].fakeTicker}
               company={STOCK_META[id].name}
               price={state.stockPrices[id]}
               sparkline={state.stockSparklines[id]}

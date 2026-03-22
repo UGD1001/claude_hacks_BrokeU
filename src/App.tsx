@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, GameMode } from './types'
-import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, COMP_TUITION, HALF_YEAR_SEC } from './gameData'
+import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, HALF_YEAR_SEC, pickGameStartDate } from './gameData'
 import { useGameLoop, applyEventChoice, applyHousePurchase, applyHouseMoveIn, applyHouseRentOut } from './hooks/useGameLoop'
 import Nav from './components/Nav'
 import MenuScreen from './components/MenuScreen'
@@ -19,7 +19,8 @@ interface SetupConfig {
 }
 
 function makeInitialState(setup: SetupConfig): GameState {
-  const { stockPrices, stockSparklines, cryptoPrices, cryptoSparklines } = makeInitialMarketData()
+  const gameStartDate = pickGameStartDate()
+  const { stockPrices, stockSparklines, cryptoPrices, cryptoSparklines } = makeInitialMarketData(gameStartDate)
 
   const stockHeld = {} as Record<StockId, number>
   const cryptoHeld = {} as Record<CryptoId, number>
@@ -35,6 +36,7 @@ function makeInitialState(setup: SetupConfig): GameState {
     tuitionDebt: setup.tuitionDebt,
 
     gameMode: setup.gameMode,
+    gameStartDate,
 
     year: 1,
     halfYearsElapsed: 0,
@@ -89,7 +91,8 @@ function makeInitialState(setup: SetupConfig): GameState {
     compIndexValue: 0,
     compCarOwned: false,
     compCarValue: 0,
-    compTuitionRemaining: COMP_TUITION,
+    compTuitionRemaining: setup.tuitionDebt,
+    compSalaryMultiplier: 1,
     compHouse: null,
     compHouseBought: false,
 
@@ -117,6 +120,7 @@ export default function App() {
     tuitionDebt: 0,
 
     gameMode: 'standard',
+    gameStartDate: '1999-01',
 
     year: 1,
     halfYearsElapsed: 0,
@@ -169,7 +173,8 @@ export default function App() {
     compIndexValue: 0,
     compCarOwned: false,
     compCarValue: 0,
-    compTuitionRemaining: COMP_TUITION,
+    compTuitionRemaining: 0,
+    compSalaryMultiplier: 1,
     compHouse: null,
     compHouseBought: false,
 
