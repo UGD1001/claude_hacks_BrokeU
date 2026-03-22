@@ -1,18 +1,19 @@
 import { useEffect } from 'react'
-import type { GameState, StockId, CryptoId, EventChoice } from '../types'
+import type { GameState, StockId, CryptoId, EventChoice, SideHustleId, House, CompHouse, MortgageTerm } from '../types'
 import {
-  TOTAL_YEARS, YEAR_SEC, CAR_GOAL,
+  TOTAL_YEARS, HALF_YEAR_SEC, CAR_GOAL,
   STOCK_IDS, CRYPTO_IDS,
-  MARKET_PARAMS, LIFE_EVENTS, ACHIEVEMENTS,
-  SIDE_HUSTLES, CODEX_ENTRIES,
+  MARKET_PARAMS, LIFE_EVENTS, ACHIEVEMENTS, SIDE_HUSTLE_NOTIFICATIONS,
+  SIDE_HUSTLES, HOUSE_OPTIONS, HOUSE_OFFER_CASH_THRESHOLD,
+  computeMonthlyPayment, MORTGAGE_RATES,
   calcNetWorth, calcCompNetWorth, getSideHustleAnnualIncome,
-  COMP_SALARY, COMP_RENT, COMP_EXPENSES,
+  COMP_SALARY, COMP_RENT, COMP_EXPENSES, COMP_TUITION,
 } from '../gameData'
 
-const TICK_MS = 250
+const TICK_MS  = 250
 const TICK_SEC = TICK_MS / 1000
 
-// ── Market helpers ────────────────────────────────────────────────────────────
+// ── Market helpers ─────────────────────────────────────────────────────────────
 
 type MarketEvent = 'normal' | 'crash' | 'boom' | 'cryptosurge'
 
@@ -38,121 +39,284 @@ function pushToast(s: GameState, text: string) {
   ]
 }
 
-function fmtNum(n: number) {
+function fmt(n: number) {
   return Math.floor(Math.abs(n)).toLocaleString('en-US')
 }
 
-// ── Event picker ──────────────────────────────────────────────────────────────
+// ── Monthly stock price update (fires every 5 real seconds) ───────────────────
 
-function pickEvent(year: number, s: GameState) {
-  const hasInvestments = s.indexValue + s.bankValue + s.realEstateValue > 500
-  const hasCrypto = s.cryptoPoolValue + CRYPTO_IDS.reduce((a, id) => a + s.cryptoHeld[id] * s.cryptoPrices[id], 0) > 100
+function applyMonthlyStockUpdate(prev: GameState): GameState {
+  const s = {
+    ...prev,
+    stockPrices:      { ...prev.stockPrices },
+    stockSparklines:  { ...prev.stockSparklines } as Record<StockId, number[]>,
+    cryptoPrices:     { ...prev.cryptoPrices },
+    cryptoSparklines: { ...prev.cryptoSparklines } as Record<CryptoId, number[]>,
+  }
+
+  // Stocks: update every month (small monthly variance)
+  for (const id of STOCK_IDS) {
+    const ret = rolledReturn(MARKET_PARAMS.stocks.base / 12, MARKET_PARAMS.stocks.variance / 3, 'normal')
+    s.stockPrices[id] = Math.max(1, s.stockPrices[id] * (1 + ret))
+    s.stockSparklines = {
+      ...s.stockSparklines,
+      [id]: [...s.stockSparklines[id].slice(1), s.stockPrices[id]],
+    }
+  }
+
+  // Cryptos: also update monthly when unlocked
+  if (s.year >= 10) {
+    for (const id of CRYPTO_IDS) {
+      const ret = rolledReturn(MARKET_PARAMS.crypto.base / 12, MARKET_PARAMS.crypto.variance / 3, 'normal')
+      s.cryptoPrices[id] = Math.max(0.001, s.cryptoPrices[id] * (1 + ret))
+      s.cryptoSparklines = {
+        ...s.cryptoSparklines,
+        [id]: [...s.cryptoSparklines[id].slice(1), s.cryptoPrices[id]],
+      }
+    }
+  }
+
+  return s
+}
+
+// ── Life event picker ─────────────────────────────────────────────────────────
+
+function pickLifeEvent(year: number, s: GameState) {
+  const hasInvestments = s.indexValue + s.bankValue > 500
+  const hasCrypto = s.year >= 10 && (
+    s.cryptoBasketValue + CRYPTO_IDS.reduce((a, id) => a + s.cryptoHeld[id] * s.cryptoPrices[id], 0) > 100
+  )
+  const hasHouse = s.house !== null
+
+  const HOUSE_EVENT_IDS = ['house_repair', 'neighbourhood_improve', 'neighbourhood_decline', 'robbery', 'event_nearby', 'property_tax_break']
 
   const pool = LIFE_EVENTS.filter(e => {
-    if (e.id === 'crypto_unlock' || e.id === 'crypto_surge') return false
-    if (e.id === 'rent_hike' && s.rentExtra > 600) return false
+    // Always excluded from random pool (fired by milestones)
+    if (e.id === 'crypto_unlock')  return false
+    if (e.id === 'crypto_surge' && !hasCrypto) return false
+    if (e.id === 'rent_hike' && (s.house?.movedIn || s.rentExtra > 600)) return false
     if (e.id === 'job_layoff' && s.salary * s.salaryMultiplier < 20000) return false
     if (e.id === 'car_breakdown' && !s.carOwned) return false
     if (e.id === 'market_crash' && !hasInvestments) return false
-    if (e.id === 'crypto_surge' && !hasCrypto) return false
     if (e.id === 'new_baby' && year > 15) return false
+    // House events only if player owns a house
+    if (HOUSE_EVENT_IDS.includes(e.id) && !hasHouse) return false
+    // Non-house events only (don't cluster too many house events)
     return true
   })
+
   if (pool.length === 0) return LIFE_EVENTS.find(e => e.id === 'tax_refund')!
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-// ── Year tick ─────────────────────────────────────────────────────────────────
+// ── Side hustle event picker (auto-fires, no player choice) ───────────────────
 
-function applyYearTick(prev: GameState): GameState {
+function maybeFireSideHustle(s: GameState): GameState {
+  // All auto-hustles except rental
+  const AUTO_HUSTLES: SideHustleId[] = ['freelance', 'store', 'content', 'digital']
+  // Only fire if not already active and not already all active
+  const remaining = AUTO_HUSTLES.filter(id => !s.activeSideHustles.includes(id))
+  if (remaining.length === 0) return s
+
+  // 15% chance per half-year that a new hustle activates
+  if (Math.random() > 0.15) return s
+
+  const newHustle = remaining[Math.floor(Math.random() * remaining.length)]
+  const note = SIDE_HUSTLE_NOTIFICATIONS[newHustle]
+  const ns = { ...s, activeSideHustles: [...s.activeSideHustles, newHustle] }
+  if (note) pushToast(ns, `${note.icon} ${note.text}`)
+  return ns
+}
+
+// ── Half-year tick (fires every 30 real seconds) ───────────────────────────────
+
+function applyHalfYearTick(prev: GameState): GameState {
   const s: GameState = {
     ...prev,
-    stockHeld:        { ...prev.stockHeld },
-    stockPrices:      { ...prev.stockPrices },
-    stockSparklines:  { ...prev.stockSparklines } as Record<StockId, number[]>,
-    cryptoHeld:       { ...prev.cryptoHeld },
-    cryptoPrices:     { ...prev.cryptoPrices },
-    cryptoSparklines: { ...prev.cryptoSparklines } as Record<CryptoId, number[]>,
+    stockHeld:         { ...prev.stockHeld },
+    stockPrices:       { ...prev.stockPrices },
+    stockSparklines:   { ...prev.stockSparklines } as Record<StockId, number[]>,
+    cryptoHeld:        { ...prev.cryptoHeld },
+    cryptoPrices:      { ...prev.cryptoPrices },
+    cryptoSparklines:  { ...prev.cryptoSparklines } as Record<CryptoId, number[]>,
     activeSideHustles: [...prev.activeSideHustles],
-    sideHustleYearsActive: { ...prev.sideHustleYearsActive },
-    achievementToasts: [...prev.achievementToasts],
+    sideHustleHalfYearsActive: { ...prev.sideHustleHalfYearsActive },
+    achievementToasts:   [...prev.achievementToasts],
     achievementsUnlocked: [...prev.achievementsUnlocked],
-    codexUnlocked: [...prev.codexUnlocked],
-    snapshots: [...prev.snapshots],
+    snapshots:           [...prev.snapshots],
   }
 
-  const year = s.year
+  const halfYear = s.halfYearsElapsed + 1  // after this tick
+  s.halfYearsElapsed = halfYear
+  const year = Math.ceil(halfYear / 2)     // 1–20
+  const isNewYear = halfYear % 2 === 0     // true on 2nd half of each year
+
   const marketEvent = rollMarketEvent(year)
 
-  // ── 1. Investment returns ────────────────────────────────────────────────
+  // ── 1. Half-year investment returns ───────────────────────────────────────
+  // Applied each half-year as half the annual rate
   if (s.bankValue > 0)
-    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base, MARKET_PARAMS.bank.variance, 'normal')
+    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal')
 
   if (s.indexValue > 0)
-    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base, MARKET_PARAMS.index.variance, marketEvent)
+    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent)
 
-  if (s.realEstateValue > 0)
-    s.realEstateValue *= 1 + rolledReturn(MARKET_PARAMS.realEstate.base, MARKET_PARAMS.realEstate.variance, marketEvent === 'crash' ? 'crash' : 'normal')
+  if (year >= 10 && s.cryptoBasketValue > 0)
+    s.cryptoBasketValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoBasket.base / 2, MARKET_PARAMS.cryptoBasket.variance / 2,
+      marketEvent === 'cryptosurge' ? 'boom' : marketEvent)
 
-  if (year >= 10 && s.cryptoPoolValue > 0)
-    s.cryptoPoolValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoPool.base, MARKET_PARAMS.cryptoPool.variance, marketEvent === 'cryptosurge' ? 'boom' : marketEvent)
+  // ── 2. Half-year income & expenses ───────────────────────────────────────
+  const hustleIncome    = getSideHustleAnnualIncome(s) / 2  // half of annual
+  const halfSalary      = (s.salary * s.salaryMultiplier) / 2
+  const apartmentRent   = s.house?.movedIn ? 0 : (s.rent + s.rentExtra) * 6  // 6 months
+  const halfExpenses    = (s.monthlyExpenses + s.expensesExtra) * 6
+  const tuitionPmt      = s.tuitionRemaining > 0 ? Math.min(s.tuitionRemaining, 500) : 0  // $1k/yr → $500/half
+  const loanInterest    = s.loanDebt > 0 ? s.loanDebt * 0.18 / 2 : 0
 
-  // ── 2. Update stock prices ───────────────────────────────────────────────
-  for (const id of STOCK_IDS) {
-    const ret = rolledReturn(MARKET_PARAMS.stocks.base, MARKET_PARAMS.stocks.variance, marketEvent === 'cryptosurge' ? 'normal' : marketEvent)
-    s.stockPrices[id] = Math.max(1, s.stockPrices[id] * (1 + ret))
-    s.stockSparklines = { ...s.stockSparklines, [id]: [...s.stockSparklines[id].slice(1), s.stockPrices[id]] }
+  // Mortgage payment (6 months)
+  let mortgagePmt = 0
+  if (s.house && s.house.mortgageMonthsPaid < s.house.mortgageTotalMonths) {
+    mortgagePmt = s.house.monthlyPayment * 6
+    const newPaid = Math.min(s.house.mortgageMonthsPaid + 6, s.house.mortgageTotalMonths)
+    // Simple principal reduction (half-year interest portion)
+    const halfYrInterest = s.house.mortgageBalance * s.house.mortgageRate / 2
+    const principalPaid  = Math.min(mortgagePmt - halfYrInterest, s.house.mortgageBalance)
+    s.house = {
+      ...s.house,
+      mortgageMonthsPaid: newPaid,
+      mortgageBalance:    Math.max(0, s.house.mortgageBalance - principalPaid),
+    }
+    if (newPaid >= s.house.mortgageTotalMonths) {
+      pushToast(s, '🏠 Mortgage paid off! No more monthly payments.')
+    }
   }
 
-  // ── 3. Update crypto prices ──────────────────────────────────────────────
-  for (const id of CRYPTO_IDS) {
-    const ret = rolledReturn(MARKET_PARAMS.crypto.base, MARKET_PARAMS.crypto.variance, marketEvent === 'cryptosurge' ? 'boom' : marketEvent)
-    s.cryptoPrices[id] = Math.max(0.001, s.cryptoPrices[id] * (1 + ret))
-    s.cryptoSparklines = { ...s.cryptoSparklines, [id]: [...s.cryptoSparklines[id].slice(1), s.cryptoPrices[id]] }
-  }
+  s.cash += halfSalary + hustleIncome - apartmentRent - halfExpenses - tuitionPmt - loanInterest - mortgagePmt
+  s.tuitionRemaining = Math.max(0, s.tuitionRemaining - tuitionPmt)
 
-  // ── 4. Annual income & expenses ──────────────────────────────────────────
-  const hustleIncome = getSideHustleAnnualIncome(s)
-  const annualSalary = s.salary * s.salaryMultiplier
-  const annualRent = (s.rent + s.rentExtra) * 12
-  const annualExpenses = (s.monthlyExpenses + s.expensesExtra) * 12
-  const tuitionPayment = Math.min(s.tuitionRemaining, 1000)
-  const loanInterest = s.loanDebt * 0.18
-
-  s.cash += annualSalary + hustleIncome - annualRent - annualExpenses - tuitionPayment - loanInterest
-  s.tuitionRemaining = Math.max(0, s.tuitionRemaining - tuitionPayment)
-
-  // ── 5. Car depreciation ──────────────────────────────────────────────────
-  if (s.carOwned) s.carValue *= 0.9
-
-  // ── 6. Lent money return ─────────────────────────────────────────────────
-  if (s.lentMoney > 0 && year >= s.lentReturnYear) {
-    s.cash += s.lentMoney
-    pushToast(s, `💸 Friend returned $${fmtNum(s.lentMoney)}!`)
-    s.lentMoney = 0
-    s.lentReturnYear = 0
-  }
-
-  // ── 7. Side hustle year increment ────────────────────────────────────────
+  // ── 3. Side hustle half-year increment ───────────────────────────────────
   for (const id of s.activeSideHustles) {
-    s.sideHustleYearsActive[id] = (s.sideHustleYearsActive[id] ?? 0) + 1
+    s.sideHustleHalfYearsActive[id] = (s.sideHustleHalfYearsActive[id] ?? 0) + 1
   }
 
-  // ── 8. Computer AI ───────────────────────────────────────────────────────
-  const compTuitionPmt = Math.min(s.compTuitionRemaining, 1000)
-  const compSurplus = COMP_SALARY - COMP_RENT * 12 - COMP_EXPENSES * 12 - compTuitionPmt
+  // ── 4. Maybe fire a side hustle event ────────────────────────────────────
+  Object.assign(s, maybeFireSideHustle(s))
+
+  // ── 5. Year-only actions (run once per year on 2nd half) ──────────────────
+  if (isNewYear) {
+    // Car depreciation
+    if (s.carOwned) s.carValue *= 0.9
+
+    // House appreciation
+    if (s.house) {
+      const baseRate = s.house.appreciationRate
+      const modRate  = s.houseAppreciationMod ? s.houseAppreciationMod.delta : 0
+      s.house = { ...s.house, currentValue: s.house.currentValue * (1 + baseRate + modRate) }
+
+      // Decrement appreciation modifier
+      if (s.houseAppreciationMod) {
+        const yearsLeft = s.houseAppreciationMod.yearsLeft - 1
+        s.houseAppreciationMod = yearsLeft > 0 ? { ...s.houseAppreciationMod, yearsLeft } : null
+      }
+    }
+
+    // Lent money return
+    if (s.lentMoney > 0 && halfYear >= s.lentReturnHalfYear) {
+      s.cash += s.lentMoney
+      pushToast(s, `💸 Friend returned $${fmt(s.lentMoney)}!`)
+      s.lentMoney = 0
+      s.lentReturnHalfYear = 0
+    }
+
+    // Snapshot
+    const playerNW = calcNetWorth(s)
+    const compNW   = calcCompNetWorth(s)
+    s.snapshots = [...s.snapshots, { year, playerNW, compNW }]
+
+    // Achievements
+    for (const ach of ACHIEVEMENTS) {
+      if (!s.achievementsUnlocked.includes(ach.id) && playerNW >= ach.threshold) {
+        s.achievementsUnlocked = [...s.achievementsUnlocked, ach.id]
+        pushToast(s, ach.text)
+      }
+    }
+
+    // Market event toasts (once per year)
+    if (marketEvent === 'crash')       pushToast(s, '📉 Market crash this year! Portfolios hit.')
+    if (marketEvent === 'boom')        pushToast(s, '🚀 Bull run! Market up big this year.')
+    if (marketEvent === 'cryptosurge') pushToast(s, '🪙 Crypto surge! Wild year in crypto.')
+  }
+
+  // ── 6. Computer AI (runs each half-year) ─────────────────────────────────
+  const compTuitionPmt = s.compTuitionRemaining > 0 ? Math.min(s.compTuitionRemaining, 500) : 0
+  const compMortgagePmt = (() => {
+    if (!s.compHouse || s.compHouse.mortgageMonthsPaid >= s.compHouse.mortgageTotalMonths) return 0
+    return s.compHouse.monthlyPayment * 6
+  })()
+  const compApartmentRent = s.compHouse?.movedIn ? 0 : COMP_RENT * 6
+
+  const compHalfSurplus = COMP_SALARY / 2
+    - compApartmentRent
+    - COMP_EXPENSES * 6
+    - compTuitionPmt
+    - compMortgagePmt
+
   s.compTuitionRemaining = Math.max(0, s.compTuitionRemaining - compTuitionPmt)
-  s.compCash += compSurplus
+  s.compCash += compHalfSurplus
 
-  s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base, MARKET_PARAMS.index.variance, marketEvent)
+  // Index fund returns (half-year)
+  s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent)
 
+  // Surplus into index
   if (s.compCash > 2000) {
     s.compIndexValue += s.compCash - 2000
     s.compCash = 2000
   }
 
-  if (s.compCarOwned) s.compCarValue *= 0.9
+  // Computer house logic (buys when cash >= 1.5× 20% downpayment of starter)
+  if (!s.compHouseBought && s.compCash >= HOUSE_OFFER_CASH_THRESHOLD) {
+    const h = HOUSE_OPTIONS[0]  // always buys starter
+    const down = h.price * 0.20
+    const principal = h.price - down
+    const term: MortgageTerm = 10
+    const rate = MORTGAGE_RATES[term]
+    const payment = computeMonthlyPayment(principal, rate, term)
+    s.compCash -= down
+    s.compHouse = {
+      purchasePrice:      h.price,
+      currentValue:       h.price,
+      mortgageBalance:    principal,
+      monthlyPayment:     payment,
+      mortgageMonthsPaid: 0,
+      mortgageTotalMonths: term * 12,
+      appreciationRate:   h.appreciationRate,
+      movedIn:            true,
+    } as CompHouse & { movedIn: boolean }
+    s.compHouseBought = true
+    pushToast(s, '🤖 Computer bought a house!')
+  }
 
+  // Computer house appreciation (yearly)
+  if (isNewYear && s.compHouse) {
+    s.compHouse = {
+      ...s.compHouse,
+      currentValue: s.compHouse.currentValue * (1 + s.compHouse.appreciationRate),
+    }
+    // Mortgage progress
+    if (s.compHouse.mortgageMonthsPaid < s.compHouse.mortgageTotalMonths) {
+      const newPaid = Math.min(s.compHouse.mortgageMonthsPaid + 12, s.compHouse.mortgageTotalMonths)
+      const yearInterest = s.compHouse.mortgageBalance * s.compHouse.mortgageRate
+      const principalPaid = Math.min(s.compHouse.monthlyPayment * 12 - yearInterest, s.compHouse.mortgageBalance)
+      s.compHouse = {
+        ...s.compHouse,
+        mortgageMonthsPaid: newPaid,
+        mortgageBalance:    Math.max(0, s.compHouse.mortgageBalance - principalPaid),
+      }
+    }
+  }
+
+  // Computer car
+  if (isNewYear && s.compCarOwned) s.compCarValue *= 0.9
   if (!s.compCarOwned && calcCompNetWorth(s) >= CAR_GOAL) {
     if (s.compCash >= CAR_GOAL) {
       s.compCarOwned = true; s.compCarValue = CAR_GOAL; s.compCash -= CAR_GOAL
@@ -164,90 +328,59 @@ function applyYearTick(prev: GameState): GameState {
     }
   }
 
-  // ── 9. Snapshot ──────────────────────────────────────────────────────────
-  const playerNW = calcNetWorth(s)
-  const compNW = calcCompNetWorth(s)
-  s.snapshots = [...s.snapshots, { year, playerNW, compNW }]
-
-  // ── 10. Codex unlocks ────────────────────────────────────────────────────
-  const defaultUnlocks = CODEX_ENTRIES.filter(e => e.defaultUnlocked && !s.codexUnlocked.includes(e.id)).map(e => e.id)
-  if (defaultUnlocks.length) s.codexUnlocked = [...s.codexUnlocked, ...defaultUnlocks]
-
-  function unlockCodex(id: string) {
-    if (!s.codexUnlocked.includes(id)) s.codexUnlocked = [...s.codexUnlocked, id]
-  }
-  if (s.indexValue > 0) unlockCodex('index_fund')
-  if (s.loanDebt > 0) { unlockCodex('debt_interest'); unlockCodex('debt_snowball') }
-  if (year >= 5)  unlockCodex('diversification')
-  if (year >= 3)  unlockCodex('dollar_cost_avg')
-  if (s.realEstateValue > 0) unlockCodex('real_estate')
-  if (STOCK_IDS.some(id => s.stockHeld[id] > 0)) unlockCodex('stock_market')
-  if (year >= 10) { unlockCodex('crypto'); unlockCodex('asset_allocation') }
-  if (s.carOwned) unlockCodex('car_depreciation')
-  if (s.activeSideHustles.length > 0) unlockCodex('side_hustle')
-  if (year >= 6)  { unlockCodex('opportunity_cost'); unlockCodex('inflation'); unlockCodex('liquidity') }
-  if (year >= 8)  unlockCodex('market_timing')
-  if (year >= 12) unlockCodex('lifestyle_creep')
-  if (year >= 15) unlockCodex('fin_literacy')
-  if (year >= 4)  unlockCodex('passive_income')
-  if (year >= 2)  unlockCodex('salary_nego')
-  if (year >= 9)  unlockCodex('risk_reward')
-
-  // ── 11. Achievements ─────────────────────────────────────────────────────
-  for (const ach of ACHIEVEMENTS) {
-    if (!s.achievementsUnlocked.includes(ach.id) && playerNW >= ach.threshold) {
-      s.achievementsUnlocked = [...s.achievementsUnlocked, ach.id]
-      pushToast(s, ach.text)
-    }
-  }
-
-  // ── 12. Market event toasts ───────────────────────────────────────────────
-  if (marketEvent === 'crash')      pushToast(s, '📉 Market crash this year! Portfolios hit.')
-  if (marketEvent === 'boom')       pushToast(s, '🚀 Bull run! Market up big this year.')
-  if (marketEvent === 'cryptosurge') pushToast(s, '🪙 Crypto surge! Wild year in crypto.')
-
-  // ── 13. Life event firing ────────────────────────────────────────────────
-  if (year >= s.nextEventYear && !s.activeEvent) {
-    s.activeEvent = pickEvent(year, s)
-    s.isPaused = true
-    s.nextEventYear = year + 2 + Math.floor(Math.random() * 2)
-  }
-
-  if (year === 9 && !s.achievementsUnlocked.includes('crypto_unlocked')) {
+  // ── 7. Crypto unlock milestone (at start of year 10) ─────────────────────
+  if (year === 10 && !s.achievementsUnlocked.includes('crypto_unlocked') && !s.activeEvent) {
     s.achievementsUnlocked = [...s.achievementsUnlocked, 'crypto_unlocked']
-    s.activeEvent = LIFE_EVENTS.find(e => e.id === 'crypto_unlock') ?? s.activeEvent
+    s.activeEvent = LIFE_EVENTS.find(e => e.id === 'crypto_unlock') ?? null
     s.isPaused = true
   }
 
-  // ── 14. Car modal ────────────────────────────────────────────────────────
-  if (!s.carModalShown && playerNW >= CAR_GOAL && s.phase === 'car') {
+  // ── 8. Life event firing ─────────────────────────────────────────────────
+  if (!s.activeEvent && !s.isPaused && halfYear >= s.nextEventHalfYear) {
+    s.activeEvent = pickLifeEvent(year, s)
+    s.isPaused = true
+    // Next event in 1–7 half-years from now
+    s.nextEventHalfYear = halfYear + 1 + Math.floor(Math.random() * 7)
+  }
+
+  // ── 9. House offer event ─────────────────────────────────────────────────
+  if (!s.houseEventFired && !s.activeEvent && !s.isPaused && s.cash >= HOUSE_OFFER_CASH_THRESHOLD) {
+    s.houseEventFired = true
+    s.houseOptions = HOUSE_OPTIONS
+    s.showHouseOffer = true
+    s.isPaused = true
+  }
+
+  // ── 10. Car modal ────────────────────────────────────────────────────────
+  if (!s.carModalShown && !s.activeEvent && !s.showHouseOffer && calcNetWorth(s) >= CAR_GOAL && s.phase === 'car') {
     s.showCarModal = true
     s.carModalShown = true
     s.isPaused = true
   }
 
-  // ── 15. Game over / end checks ───────────────────────────────────────────
-  const newYear = year + 1
+  // ── 11. Game over / end checks ───────────────────────────────────────────
   const liquidAssets = s.cash + s.bankValue + s.indexValue
-
   if (s.cash < -5000 || (s.cash < 0 && liquidAssets < 500)) {
-    return { ...s, screen: 'endgame', gameOverReason: 'You went bankrupt.', playerWon: false }
+    return { ...s, screen: 'endgame', gameOverReason: 'You ran out of money.', playerWon: false }
   }
 
-  if (newYear > TOTAL_YEARS) {
+  if (year >= TOTAL_YEARS && isNewYear) {
     return {
       ...s,
-      year: newYear,
+      year: TOTAL_YEARS,
       screen: 'endgame',
       gameOverReason: '',
       playerWon: calcNetWorth(s) > calcCompNetWorth(s),
     }
   }
 
-  return { ...s, year: newYear }
+  // Update year counter
+  s.year = year
+
+  return s
 }
 
-// ── Hook ──────────────────────────────────────────────────────────────────────
+// ── Hook ───────────────────────────────────────────────────────────────────────
 
 export function useGameLoop(
   gameState: GameState,
@@ -260,20 +393,31 @@ export function useGameLoop(
       setGameState(prev => {
         if (prev.screen !== 'game') return prev
 
-        let s = { ...prev }
-        s.gameTick += 1
-
-        if (!s.isPaused) {
-          s.timeToNextYear -= TICK_SEC
+        let s = {
+          ...prev,
+          timeToNextHalfYear:     prev.timeToNextHalfYear,
+          timeToNextMonthlyUpdate: prev.timeToNextMonthlyUpdate,
         }
 
         // Clean stale toasts
         const now = Date.now()
         s.achievementToasts = s.achievementToasts.filter(t => now - t.ts < 4000)
 
-        if (!s.isPaused && s.timeToNextYear <= 0) {
-          s = applyYearTick(s)
-          if (s.screen === 'game') s.timeToNextYear = YEAR_SEC
+        if (!s.isPaused) {
+          s.timeToNextHalfYear      -= TICK_SEC
+          s.timeToNextMonthlyUpdate -= TICK_SEC
+        }
+
+        // Monthly stock update every 5 real seconds
+        if (s.timeToNextMonthlyUpdate <= 0) {
+          s = applyMonthlyStockUpdate(s)
+          s.timeToNextMonthlyUpdate = 5
+        }
+
+        // Half-year tick every 30 real seconds
+        if (!s.isPaused && s.timeToNextHalfYear <= 0) {
+          s = applyHalfYearTick(s)
+          if (s.screen === 'game') s.timeToNextHalfYear = HALF_YEAR_SEC
         }
 
         return s
@@ -284,26 +428,25 @@ export function useGameLoop(
   }, [gameState.screen, setGameState])
 }
 
-// ── Event choice applier ──────────────────────────────────────────────────────
+// ── Event choice applier ───────────────────────────────────────────────────────
 
 export function applyEventChoice(prev: GameState, choice: EventChoice): GameState {
   const s: GameState = {
     ...prev,
-    stockHeld:   { ...prev.stockHeld },
-    cryptoHeld:  { ...prev.cryptoHeld },
+    stockHeld:  { ...prev.stockHeld },
+    cryptoHeld: { ...prev.cryptoHeld },
     achievementToasts: [...prev.achievementToasts],
   }
 
-  if (choice.cashChange !== undefined) s.cash += choice.cashChange
-  if (choice.addDebt !== undefined) s.loanDebt += choice.addDebt
-
+  if (choice.cashChange   !== undefined) s.cash      += choice.cashChange
+  if (choice.addDebt      !== undefined) s.loanDebt  += choice.addDebt
   if (choice.investInIndex !== undefined) s.indexValue += choice.investInIndex
 
   if (choice.sellAllInvestments) {
-    let total = s.bankValue + s.indexValue + s.realEstateValue + s.cryptoPoolValue
-    for (const id of STOCK_IDS) { total += (s.stockHeld[id] ?? 0) * s.stockPrices[id]; s.stockHeld[id] = 0 }
+    let total = s.bankValue + s.indexValue + s.cryptoBasketValue
+    for (const id of STOCK_IDS)  { total += (s.stockHeld[id]  ?? 0) * s.stockPrices[id];  s.stockHeld[id]  = 0 }
     for (const id of CRYPTO_IDS) { total += (s.cryptoHeld[id] ?? 0) * s.cryptoPrices[id]; s.cryptoHeld[id] = 0 }
-    s.bankValue = 0; s.indexValue = 0; s.realEstateValue = 0; s.cryptoPoolValue = 0
+    s.bankValue = 0; s.indexValue = 0; s.cryptoBasketValue = 0
     s.cash += total * 0.80
   }
 
@@ -317,7 +460,7 @@ export function applyEventChoice(prev: GameState, choice: EventChoice): GameStat
     const amt = Math.min(choice.lend, Math.max(0, s.cash))
     s.cash -= amt
     s.lentMoney = amt
-    s.lentReturnYear = s.year + 3
+    s.lentReturnHalfYear = s.halfYearsElapsed + 6  // ~3 years
   }
 
   if (choice.gamble !== undefined) {
@@ -332,22 +475,88 @@ export function applyEventChoice(prev: GameState, choice: EventChoice): GameStat
     }
   }
 
-  if (choice.salaryMultiplier !== undefined) s.salaryMultiplier *= choice.salaryMultiplier
-  if (choice.rentHikeMonthly !== undefined) s.rentExtra += choice.rentHikeMonthly
-  if (choice.expenseAddMonthly !== undefined) s.expensesExtra += choice.expenseAddMonthly
-  if (choice.loseHalfYearIncome) s.cash -= (s.salary * s.salaryMultiplier) / 2
+  if (choice.salaryMultiplier   !== undefined) s.salaryMultiplier *= choice.salaryMultiplier
+  if (choice.rentHikeMonthly    !== undefined) s.rentExtra        += choice.rentHikeMonthly
+  if (choice.expenseAddMonthly  !== undefined) s.expensesExtra    += choice.expenseAddMonthly
+  if (choice.loseHalfYearIncome)               s.cash             -= (s.salary * s.salaryMultiplier) / 2
 
-  s.activeEvent = null
-  s.showCarModal = false
-  s.isPaused = false
+  // House repair choices
+  if (choice.payRepair         !== undefined) s.cash     -= choice.payRepair
+  if (choice.houseRepairDebt   !== undefined) s.loanDebt += choice.houseRepairDebt
+  if (choice.houseAppreciationMod)            s.houseAppreciationMod = choice.houseAppreciationMod
+
+  s.activeEvent  = null
+  s.isPaused     = false
 
   return s
 }
 
-function fmt(n: number) {
-  return Math.floor(Math.abs(n)).toLocaleString('en-US')
+// ── House purchase applier ────────────────────────────────────────────────────
+
+export function applyHousePurchase(
+  prev: GameState,
+  option: import('../types').HouseOption,
+  downPct: number,
+  termYears: MortgageTerm,
+): GameState {
+  const downPayment = option.price * downPct
+  const principal   = option.price - downPayment
+  const rate        = MORTGAGE_RATES[termYears]
+  const payment     = computeMonthlyPayment(principal, rate, termYears)
+
+  const house: House = {
+    type:               option.type,
+    purchasePrice:      option.price,
+    currentValue:       option.price,
+    appreciationRate:   option.appreciationRate,
+    downPayment,
+    mortgageBalance:    principal,
+    mortgageRate:       rate,
+    mortgageTotalMonths: termYears * 12,
+    mortgageMonthsPaid: 0,
+    monthlyPayment:     payment,
+    movedIn:            false,
+    isRentedOut:        false,
+    rentalIncomeMonthly: option.rentalIncomeMonthly,
+  }
+
+  return {
+    ...prev,
+    cash:            prev.cash - downPayment,
+    house,
+    houseOptions:    null,
+    showHouseOffer:  false,
+    showHouseMoveModal: true,
+    isPaused:        true,   // still paused for the move modal
+  }
 }
 
-// Suppress unused import warnings
-void (SIDE_HUSTLES)
-void (CAR_GOAL as unknown)
+// ── House move-in / rent-out applier ─────────────────────────────────────────
+
+export function applyHouseMoveIn(prev: GameState): GameState {
+  if (!prev.house) return prev
+  return {
+    ...prev,
+    house: { ...prev.house, movedIn: true, isRentedOut: false },
+    showHouseMoveModal: false,
+    isPaused: false,
+  }
+}
+
+export function applyHouseRentOut(prev: GameState): GameState {
+  if (!prev.house) return prev
+  const ns = {
+    ...prev,
+    house: { ...prev.house, movedIn: false, isRentedOut: true },
+    activeSideHustles: prev.activeSideHustles.includes('rental')
+      ? prev.activeSideHustles
+      : [...prev.activeSideHustles, 'rental' as SideHustleId],
+    showHouseMoveModal: false,
+    isPaused: false,
+  }
+  pushToast(ns, `🏠 House is rented out! +$${fmt(prev.house.rentalIncomeMonthly)}/mo income.`)
+  return ns
+}
+
+// Keep COMP_TUITION referenced so TS doesn't strip the import
+void COMP_TUITION

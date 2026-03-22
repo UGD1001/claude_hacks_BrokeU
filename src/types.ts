@@ -1,26 +1,64 @@
 export type Screen = 'menu' | 'setup' | 'game' | 'endgame'
 
-export type StockId = 'AAPL' | 'TSLA' | 'MSFT' | 'AMZN' | 'NVDA' | 'GOOG'
-export type CryptoId = 'BTC' | 'ETH' | 'SOL' | 'DOGE'
+// Anonymised tickers
+export type StockId   = 'TGNX' | 'EVMX' | 'CLDX' | 'RTLX' | 'AICX' | 'DSRX'
+export type CryptoId  = 'BTGD' | 'SMTC' | 'FSTC' | 'MMTK'
 export type SideHustleId = 'freelance' | 'store' | 'content' | 'digital' | 'rental'
-export type CoreInvestmentId = 'bank' | 'index' | 'realEstate' | 'cryptoPool'
+export type CoreInvestmentId = 'bank' | 'index' | 'cryptoBasket'
+
+export type HouseType = 'starter' | 'suburban' | 'upscale'
+export type MortgageTerm = 10 | 15 | 20
+
+export interface HouseOption {
+  type: HouseType
+  label: string           // "Starter Home", "Suburban Home", "Upscale Home"
+  neighbourhood: string   // flavour label
+  price: number
+  appreciationRate: number  // annual, e.g. 0.04
+  rentalIncomeMonthly: number
+}
+
+export interface House {
+  type: HouseType
+  purchasePrice: number
+  currentValue: number
+  appreciationRate: number          // e.g. 0.04 per year
+
+  // Mortgage
+  downPayment: number
+  mortgageBalance: number           // remaining principal
+  mortgageRate: number              // annual, e.g. 0.045
+  mortgageTotalMonths: number       // 120 | 180 | 240
+  mortgageMonthsPaid: number
+  monthlyPayment: number            // fixed payment
+
+  // Occupancy
+  movedIn: boolean                  // true → rent cancelled, cannot rent out
+  isRentedOut: boolean              // true → earns rental income
+  rentalIncomeMonthly: number
+}
 
 export interface EventChoice {
   key: string
   label: string
   outcome: string
   outcomeClass: 'good' | 'neutral' | 'bad'
-  cashChange?: number        // direct cash delta
-  addDebt?: number           // add to loan debt
-  investInIndex?: number     // add amount to index fund
+  cashChange?: number
+  addDebt?: number
+  investInIndex?: number
   sellAllInvestments?: boolean
-  sellIndexAmount?: number   // sell specific amount from index
-  lend?: number              // lend cash (returned in 3 years)
-  gamble?: number            // gamble this amount
-  salaryMultiplier?: number  // multiply salary permanently
-  rentHikeMonthly?: number   // add to monthly rent permanently
-  expenseAddMonthly?: number // add to monthly expenses permanently
+  sellIndexAmount?: number
+  lend?: number
+  gamble?: number
+  salaryMultiplier?: number
+  rentHikeMonthly?: number
+  expenseAddMonthly?: number
   loseHalfYearIncome?: boolean
+  // House repair choices
+  payRepair?: number
+  houseRepairDebt?: number
+  // Neighbourhood modifier (annual appreciation delta for N years)
+  houseAppreciationMod?: { delta: number; years: number }
 }
 
 export interface GameEvent {
@@ -43,87 +81,110 @@ export interface YearSnapshot {
   compNW: number
 }
 
+// ── Computer AI state (house) ────────────────────────────────────────────────
+export interface CompHouse {
+  purchasePrice: number
+  currentValue: number
+  mortgageBalance: number
+  monthlyPayment: number
+  mortgageMonthsPaid: number
+  mortgageTotalMonths: number
+  appreciationRate: number
+}
+
 export interface GameState {
   screen: Screen
 
-  // Player setup profile
+  // Player profile
   playerName: string
   salary: number          // annual
-  rent: number            // monthly
+  rent: number            // monthly apartment rent
   monthlyExpenses: number
   tuitionDebt: number     // starting total
 
-  // Game time
-  year: number            // 1–20
-  timeToNextYear: number  // real seconds until next year tick
-  gameTick: number
+  // ── Timing ──────────────────────────────────────────────────────────────────
+  // Game runs on half-year ticks: 1 half-year = 30 real seconds
+  // 1 full year = 2 half-year ticks = 60 real seconds → 20 years = 20 min
+  year: number                    // 1–20  (advances every 2 half-year ticks)
+  halfYearsElapsed: number        // 0–39  (absolute counter)
+  timeToNextHalfYear: number      // real seconds until next half-year tick
+  timeToNextMonthlyUpdate: number // seconds until monthly stock price update (5s)
   isPaused: boolean
 
-  // Cash
+  // ── Cash ────────────────────────────────────────────────────────────────────
   cash: number
 
-  // Debts
+  // ── Debts ───────────────────────────────────────────────────────────────────
   loanDebt: number
   tuitionRemaining: number
 
-  // Core investments ($)
+  // ── Core investments ─────────────────────────────────────────────────────────
   bankValue: number
   indexValue: number
-  realEstateValue: number
-  cryptoPoolValue: number
+  cryptoBasketValue: number   // replaces cryptoPoolValue (unlocked yr 10)
 
-  // Stocks: shares held
+  // ── Individual stocks ────────────────────────────────────────────────────────
   stockHeld: Record<StockId, number>
   stockPrices: Record<StockId, number>
   stockSparklines: Record<StockId, number[]>
 
-  // Cryptos: units held (unlocked at year 10)
+  // ── Individual cryptos ───────────────────────────────────────────────────────
   cryptoHeld: Record<CryptoId, number>
   cryptoPrices: Record<CryptoId, number>
   cryptoSparklines: Record<CryptoId, number[]>
 
-  // Car asset
+  // ── Car ──────────────────────────────────────────────────────────────────────
   carOwned: boolean
   carValue: number
 
-  // Phase
+  // ── House ────────────────────────────────────────────────────────────────────
+  house: House | null
+  houseOptions: HouseOption[] | null   // non-null when house-offer event fires
+  showHouseOffer: boolean
+  showHouseMoveModal: boolean
+  // Appreciation modifiers from neighbourhood events (years remaining)
+  houseAppreciationMod: { delta: number; yearsLeft: number } | null
+
+  // ── Phase ────────────────────────────────────────────────────────────────────
   phase: 'car' | 'networth'
   showCarModal: boolean
-  carModalShown: boolean   // only show once
+  carModalShown: boolean
 
-  // Side hustles
+  // ── Side hustles (auto-activated by random events) ───────────────────────────
   activeSideHustles: SideHustleId[]
-  sideHustleYearsActive: Partial<Record<SideHustleId, number>>
+  sideHustleHalfYearsActive: Partial<Record<SideHustleId, number>>
 
-  // Permanent modifiers from events
+  // ── Permanent modifiers ──────────────────────────────────────────────────────
   salaryMultiplier: number
-  rentExtra: number
+  rentExtra: number       // added to monthly apartment rent
   expensesExtra: number
 
-  // Lent money
+  // ── Lent money ───────────────────────────────────────────────────────────────
   lentMoney: number
-  lentReturnYear: number  // year it comes back
+  lentReturnHalfYear: number   // absolute half-year when money returns
 
-  // Computer opponent
+  // ── Computer opponent ────────────────────────────────────────────────────────
   compCash: number
   compIndexValue: number
   compCarOwned: boolean
   compCarValue: number
   compTuitionRemaining: number
+  compHouse: CompHouse | null
+  compHouseBought: boolean   // flag so it buys once
 
-  // History (index = year - 1)
+  // ── History ──────────────────────────────────────────────────────────────────
   snapshots: YearSnapshot[]
 
-  // Active event
+  // ── Events ───────────────────────────────────────────────────────────────────
   activeEvent: GameEvent | null
-  nextEventYear: number
+  nextEventHalfYear: number   // absolute half-year when next life event fires
+  houseEventFired: boolean    // "found a property" event fires once
 
-  // Toasts & achievements
+  // ── Toasts & achievements ────────────────────────────────────────────────────
   achievementToasts: AchievementToastItem[]
   achievementsUnlocked: string[]
-  codexUnlocked: string[]
 
-  // End game reason (for endgame screen)
+  // ── End state ────────────────────────────────────────────────────────────────
   gameOverReason: string
   playerWon: boolean
 }

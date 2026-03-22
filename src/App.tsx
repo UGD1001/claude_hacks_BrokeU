@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
-import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice } from './types'
-import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, COMP_TUITION } from './gameData'
-import { useGameLoop, applyEventChoice } from './hooks/useGameLoop'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm } from './types'
+import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, COMP_TUITION, HALF_YEAR_SEC } from './gameData'
+import { useGameLoop, applyEventChoice, applyHousePurchase, applyHouseMoveIn, applyHouseRentOut } from './hooks/useGameLoop'
 import Nav from './components/Nav'
 import MenuScreen from './components/MenuScreen'
 import SetupScreen from './components/SetupScreen'
@@ -34,8 +34,9 @@ function makeInitialState(setup: SetupConfig): GameState {
     tuitionDebt: setup.tuitionDebt,
 
     year: 1,
-    timeToNextYear: 60,
-    gameTick: 0,
+    halfYearsElapsed: 0,
+    timeToNextHalfYear: HALF_YEAR_SEC,
+    timeToNextMonthlyUpdate: 5,
     isPaused: false,
 
     cash: 500,
@@ -45,8 +46,7 @@ function makeInitialState(setup: SetupConfig): GameState {
 
     bankValue: 0,
     indexValue: 0,
-    realEstateValue: 0,
-    cryptoPoolValue: 0,
+    cryptoBasketValue: 0,
 
     stockHeld,
     stockPrices,
@@ -59,34 +59,42 @@ function makeInitialState(setup: SetupConfig): GameState {
     carOwned: false,
     carValue: 0,
 
+    house: null,
+    houseOptions: null,
+    showHouseOffer: false,
+    showHouseMoveModal: false,
+    houseAppreciationMod: null,
+
     phase: 'car',
     showCarModal: false,
     carModalShown: false,
 
     activeSideHustles: [],
-    sideHustleYearsActive: {},
+    sideHustleHalfYearsActive: {},
 
     salaryMultiplier: 1,
     rentExtra: 0,
     expensesExtra: 0,
 
     lentMoney: 0,
-    lentReturnYear: 0,
+    lentReturnHalfYear: 0,
 
     compCash: 500,
     compIndexValue: 0,
     compCarOwned: false,
     compCarValue: 0,
     compTuitionRemaining: COMP_TUITION,
+    compHouse: null,
+    compHouseBought: false,
 
     snapshots: [],
 
     activeEvent: null,
-    nextEventYear: 3,
+    nextEventHalfYear: 3,
+    houseEventFired: false,
 
     achievementToasts: [],
     achievementsUnlocked: [],
-    codexUnlocked: [],
 
     gameOverReason: '',
     playerWon: false,
@@ -101,46 +109,68 @@ export default function App() {
     rent: 1200,
     monthlyExpenses: 800,
     tuitionDebt: 0,
+
     year: 1,
-    timeToNextYear: 60,
-    gameTick: 0,
+    halfYearsElapsed: 0,
+    timeToNextHalfYear: HALF_YEAR_SEC,
+    timeToNextMonthlyUpdate: 5,
     isPaused: false,
+
     cash: 500,
     loanDebt: 0,
     tuitionRemaining: 0,
+
     bankValue: 0,
     indexValue: 0,
-    realEstateValue: 0,
-    cryptoPoolValue: 0,
+    cryptoBasketValue: 0,
+
     stockHeld: {} as Record<StockId, number>,
     stockPrices: {} as Record<StockId, number>,
     stockSparklines: {} as Record<StockId, number[]>,
     cryptoHeld: {} as Record<CryptoId, number>,
     cryptoPrices: {} as Record<CryptoId, number>,
     cryptoSparklines: {} as Record<CryptoId, number[]>,
+
     carOwned: false,
     carValue: 0,
+
+    house: null,
+    houseOptions: null,
+    showHouseOffer: false,
+    showHouseMoveModal: false,
+    houseAppreciationMod: null,
+
     phase: 'car',
     showCarModal: false,
     carModalShown: false,
+
     activeSideHustles: [],
-    sideHustleYearsActive: {},
+    sideHustleHalfYearsActive: {},
+
     salaryMultiplier: 1,
     rentExtra: 0,
     expensesExtra: 0,
+
     lentMoney: 0,
-    lentReturnYear: 0,
+    lentReturnHalfYear: 0,
+
     compCash: 500,
     compIndexValue: 0,
     compCarOwned: false,
     compCarValue: 0,
     compTuitionRemaining: COMP_TUITION,
+    compHouse: null,
+    compHouseBought: false,
+
     snapshots: [],
+
     activeEvent: null,
-    nextEventYear: 3,
+    nextEventHalfYear: 3,
+    houseEventFired: false,
+
     achievementToasts: [],
     achievementsUnlocked: [],
-    codexUnlocked: [],
+
     gameOverReason: '',
     playerWon: false,
   })
@@ -192,10 +222,9 @@ export default function App() {
       return {
         ...prev,
         cash: prev.cash - actual,
-        bankValue: type === 'bank' ? prev.bankValue + actual : prev.bankValue,
-        indexValue: type === 'index' ? prev.indexValue + actual : prev.indexValue,
-        realEstateValue: type === 'realEstate' ? prev.realEstateValue + actual : prev.realEstateValue,
-        cryptoPoolValue: type === 'cryptoPool' ? prev.cryptoPoolValue + actual : prev.cryptoPoolValue,
+        bankValue:        type === 'bank'         ? prev.bankValue        + actual : prev.bankValue,
+        indexValue:       type === 'index'        ? prev.indexValue       + actual : prev.indexValue,
+        cryptoBasketValue: type === 'cryptoBasket' ? prev.cryptoBasketValue + actual : prev.cryptoBasketValue,
       }
     })
   }, [])
@@ -251,16 +280,20 @@ export default function App() {
     })
   }, [])
 
-  const handleActivateHustle = useCallback((id: import('./types').SideHustleId, cost: number) => {
-    setGameState(prev => {
-      if (prev.cash < cost) return prev
-      return {
-        ...prev,
-        cash: prev.cash - cost,
-        activeSideHustles: [...prev.activeSideHustles, id],
-        sideHustleYearsActive: { ...prev.sideHustleYearsActive, [id]: 0 },
-      }
-    })
+  const handlePurchaseHouse = useCallback((option: HouseOption, downPct: number, termYears: MortgageTerm) => {
+    setGameState(prev => applyHousePurchase(prev, option, downPct, termYears))
+  }, [])
+
+  const handleDeclineHouse = useCallback(() => {
+    setGameState(prev => ({ ...prev, showHouseOffer: false, houseOptions: null, isPaused: false }))
+  }, [])
+
+  const handleMoveIn = useCallback(() => {
+    setGameState(prev => applyHouseMoveIn(prev))
+  }, [])
+
+  const handleRentOut = useCallback(() => {
+    setGameState(prev => applyHouseRentOut(prev))
   }, [])
 
   const handlePlayAgain = useCallback(() => {
@@ -294,7 +327,10 @@ export default function App() {
           onSellStock={handleSellStock}
           onBuyCrypto={handleBuyCrypto}
           onSellCrypto={handleSellCrypto}
-          onActivateHustle={handleActivateHustle}
+          onPurchaseHouse={handlePurchaseHouse}
+          onDeclineHouse={handleDeclineHouse}
+          onMoveIn={handleMoveIn}
+          onRentOut={handleRentOut}
         />
       )}
 

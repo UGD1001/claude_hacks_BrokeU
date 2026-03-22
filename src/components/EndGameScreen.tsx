@@ -1,5 +1,5 @@
 import type { GameState } from '../types'
-import { calcNetWorth, calcCompNetWorth, STOCK_IDS, CRYPTO_IDS } from '../gameData'
+import { calcNetWorth, calcCompNetWorth, STOCK_IDS, CRYPTO_IDS, GLOSSARY_ENTRIES } from '../gameData'
 
 interface Props {
   state: GameState
@@ -14,11 +14,6 @@ function fmt(n: number) {
   return sign + '$' + Math.floor(abs).toLocaleString('en-US')
 }
 
-function pct(a: number, b: number) {
-  if (b === 0) return '0%'
-  return ((a / b) * 100).toFixed(0) + '%'
-}
-
 function generateTips(state: GameState, playerNW: number, compNW: number): string[] {
   const tips: string[] = []
 
@@ -27,8 +22,10 @@ function generateTips(state: GameState, playerNW: number, compNW: number): strin
     tips.push('⚠️ You ended with high-interest debt. Pay off 18% APR loans before investing — it\'s a guaranteed 18% return.')
   }
 
-  // Panic sell tip — if they sold all investments at some point (we can infer from low investment totals)
-  const totalInvested = state.bankValue + state.indexValue + state.realEstateValue + state.cryptoPoolValue
+  // Panic sell / cash heavy tip — infer from low investment totals vs net worth
+  const stockValue     = STOCK_IDS.reduce((sum, id)  => sum + state.stockHeld[id]  * state.stockPrices[id],  0)
+  const cryptoValue    = CRYPTO_IDS.reduce((sum, id) => sum + state.cryptoHeld[id] * state.cryptoPrices[id], 0)
+  const totalInvested  = state.bankValue + state.indexValue + state.cryptoBasketValue + stockValue + cryptoValue
   if (totalInvested < 1000 && playerNW > 5000) {
     tips.push('📉 It looks like most of your portfolio ended up in cash. Keeping money invested — even through crashes — typically outperforms holding cash.')
   }
@@ -38,9 +35,9 @@ function generateTips(state: GameState, playerNW: number, compNW: number): strin
     tips.push('📈 The computer puts all surplus into the index fund at 7%/yr average. This simple strategy beats most active approaches over 20 years.')
   }
 
-  // Side hustle tip
+  // Side hustle tip — side hustles are now auto-activated by events, so check if none fired
   if (state.activeSideHustles.length === 0) {
-    tips.push('💻 You didn\'t activate any side hustles. Freelancing is free to start and adds $3,000/yr — starting Year 1 adds significant compounding over 20 years.')
+    tips.push('💻 No side hustles came your way this run. In future runs, random events can unlock freelancing, an online store, content creation, and more — each adding passive income.')
   }
 
   // Car tip
@@ -48,9 +45,14 @@ function generateTips(state: GameState, playerNW: number, compNW: number): strin
     tips.push('🚗 Your car depreciated 10%/yr. Cars are expenses, not investments — the computer kept investing instead and grew its portfolio faster.')
   }
 
-  // Real estate tip
-  if (state.realEstateValue === 0 && state.year > 10) {
-    tips.push('🏡 Real estate (available from Year 7) earns 6%/yr with low variance. It\'s a stable addition to a diversified portfolio.')
+  // House tip — use state.house instead of the old realEstateValue
+  if (!state.house && state.year > 10) {
+    tips.push('🏡 You didn\'t own property by Year 10. Real estate builds equity over time and can generate rental income — it\'s a stable addition to a diversified portfolio.')
+  }
+
+  // Mortgage tip
+  if (state.house && state.house.mortgageBalance > 0) {
+    tips.push('🏠 You carry a mortgage — remember that each payment builds equity. Shorter mortgage terms (10yr) cost more monthly but save tens of thousands in total interest.')
   }
 
   // Win/lose tip
@@ -65,13 +67,13 @@ function generateTips(state: GameState, playerNW: number, compNW: number): strin
 
 export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
   const playerNW = calcNetWorth(state)
-  const compNW = calcCompNetWorth(state)
-  const won = playerNW > compNW
+  const compNW   = calcCompNetWorth(state)
+  const won      = playerNW > compNW
   const bankrupt = !!state.gameOverReason
 
-  const stockValue = STOCK_IDS.reduce((sum, id) => sum + state.stockHeld[id] * state.stockPrices[id], 0)
-  const cryptoValue = CRYPTO_IDS.reduce((sum, id) => sum + state.cryptoHeld[id] * state.cryptoPrices[id], 0)
-  const totalInvested = state.bankValue + state.indexValue + state.realEstateValue + state.cryptoPoolValue + stockValue + cryptoValue
+  const stockValue    = STOCK_IDS.reduce((sum, id)  => sum + state.stockHeld[id]  * state.stockPrices[id],  0)
+  const cryptoValue   = CRYPTO_IDS.reduce((sum, id) => sum + state.cryptoHeld[id] * state.cryptoPrices[id], 0)
+  const totalInvested = state.bankValue + state.indexValue + state.cryptoBasketValue + stockValue + cryptoValue
 
   const tips = generateTips(state, playerNW, compNW)
 
@@ -105,6 +107,11 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
           <div className="endgame-vs-nw" style={{ color: won ? 'var(--green)' : 'var(--red)' }}>{fmt(playerNW)}</div>
           <div className="endgame-vs-detail">Cash: {fmt(state.cash)}</div>
           <div className="endgame-vs-detail">Investments: {fmt(totalInvested)}</div>
+          {state.house && (
+            <div className="endgame-vs-detail">
+              🏠 House equity: {fmt(state.house.currentValue - state.house.mortgageBalance)}
+            </div>
+          )}
           <div className="endgame-vs-detail">Debt: {state.loanDebt > 0 ? fmt(state.loanDebt) : 'None'}</div>
           {state.carOwned && <div className="endgame-vs-detail">🚗 Car: {fmt(state.carValue)}</div>}
         </div>
@@ -114,6 +121,11 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
           <div className="endgame-vs-nw" style={{ color: won ? 'var(--mid)' : 'var(--yellow)' }}>{fmt(compNW)}</div>
           <div className="endgame-vs-detail">Cash: {fmt(state.compCash)}</div>
           <div className="endgame-vs-detail">Index Fund: {fmt(state.compIndexValue)}</div>
+          {state.compHouse && (
+            <div className="endgame-vs-detail">
+              🏠 House equity: {fmt(state.compHouse.currentValue - state.compHouse.mortgageBalance)}
+            </div>
+          )}
           <div className="endgame-vs-detail">Debt: None</div>
           {state.compCarOwned && <div className="endgame-vs-detail">🚗 Car: {fmt(state.compCarValue)}</div>}
         </div>
@@ -156,9 +168,21 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
         </div>
       )}
 
-      {/* Codex progress */}
-      <div className="endgame-codex">
-        Finance Codex: <strong>{state.codexUnlocked.length}/24 entries</strong> unlocked this run
+      {/* Financial Glossary */}
+      <div className="endgame-glossary">
+        <div className="endgame-glossary-title">📚 FINANCIAL GLOSSARY</div>
+        <div className="endgame-glossary-grid">
+          {GLOSSARY_ENTRIES.map(entry => (
+            <div key={entry.term} className="glossary-card">
+              <div className="glossary-card-header">
+                <span className="glossary-emoji">{entry.emoji}</span>
+                <span className="glossary-term">{entry.term}</span>
+              </div>
+              <p className="glossary-def">{entry.definition}</p>
+              <code className="glossary-formula">{entry.formula}</code>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="outcome-actions">
