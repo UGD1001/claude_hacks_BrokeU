@@ -2387,3 +2387,243 @@ body::after {
 
 .invest-all-btn:hover { background: rgba(196, 84, 180, 0.18); border-color: var(--pink); }
 .invest-all-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── NEW LEFT PANEL (lp-kv / collapsible) ── */
+.lp-label {
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--blue);
+  text-transform: uppercase;
+}
+
+.lp-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.lp-k {
+  color: var(--mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lp-v {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-align: right;
+  color: var(--sky);
+}
+
+.lp-pos { color: var(--green); }
+.lp-neg { color: var(--red); }
+.lp-muted { color: var(--mid); font-size: 10px; }
+
+.lp-muted-note {
+  font-size: 9px;
+  color: var(--mid);
+  font-style: italic;
+}
+
+/* Collapsible section headers */
+.lp-collapsible-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+}
+
+.lp-collapsible-hdr:hover .lp-label { color: var(--teal); }
+
+.lp-caret {
+  font-size: 8px;
+  color: var(--mid);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.lp-caret.open { transform: rotate(180deg); }
+
+/* Flow detail (expanded) */
+.lp-flow-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 0 2px;
+  border-top: 1px solid rgba(80, 100, 203, 0.1);
+}
+
+.lp-fr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 9px;
+}
+
+.lp-fr-k {
+  color: var(--mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.lp-fr-v {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  text-align: right;
+}
+
+/* Goal progress (left panel) */
+.lp-goal {
+  background: rgba(80, 100, 203, 0.06);
+  border: 1px solid rgba(80, 100, 203, 0.18);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.lp-goal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.lp-goal-pct {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  color: var(--yellow);
+  letter-spacing: 0.03em;
+}
+
+.lp-track {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.lp-track-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  transition: width 0.5s ease;
+}
+
+.lp-goal-sub {
+  font-size: 8px;
+  color: var(--mid);
+}
+
+/* Debt / lent */
+.lp-lent {
+  font-size: 9px;
+  color: var(--yellow);
+  background: rgba(255, 219, 109, 0.05);
+  border: 1px solid rgba(255, 219, 109, 0.15);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+/* Side hustle list (expanded) */
+.lp-hustle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.lp-hustle-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: rgba(162, 228, 90, 0.04);
+  border: 1px solid rgba(162, 228, 90, 0.12);
+  color: var(--sky);
+}
+
+/* Leaderboard (left panel) */
+.lp-lb {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lp-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.lp-lb-row.me {
+  background: rgba(255, 219, 109, 0.06);
+  border-color: rgba(255, 219, 109, 0.18);
+}
+
+.lp-lb-rank {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  color: var(--mid);
+  min-width: 18px;
+}
+
+.lp-lb-row.me .lp-lb-rank { color: var(--yellow); }
+
+.lp-lb-name {
+  flex: 1;
+  color: var(--sky);
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lp-lb-nw {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── SELL / WITHDRAW BUTTONS (core investment tiles) ── */
+.inv-withdraw-btns {
+  border-top: 1px solid rgba(199, 83, 71, 0.15);
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.inv-btn-sell {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border-radius: 3px;
+  border: 1px solid rgba(199, 83, 71, 0.3);
+  background: rgba(199, 83, 71, 0.07);
+  color: var(--red);
+  cursor: pointer;
+  transition: all 0.13s;
+}
+
+.inv-btn-sell:hover { background: rgba(199, 83, 71, 0.18); border-color: var(--red); }
+.inv-btn-sell:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* ── STAT (stat override for lp-v net-worth / cash sizing) ── */
+.lp-stat {}
+
+.lp-stat .lp-k { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; }
+.lp-stat .lp-v { font-family: 'Bebas Neue', sans-serif; font-size: 22px; }

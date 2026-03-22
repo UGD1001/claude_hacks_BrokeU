@@ -222,9 +222,24 @@ export default function App() {
       return {
         ...prev,
         cash: prev.cash - actual,
-        bankValue:        type === 'bank'         ? prev.bankValue        + actual : prev.bankValue,
-        indexValue:       type === 'index'        ? prev.indexValue       + actual : prev.indexValue,
+        bankValue:         type === 'bank'         ? prev.bankValue         + actual : prev.bankValue,
+        indexValue:        type === 'index'        ? prev.indexValue        + actual : prev.indexValue,
         cryptoBasketValue: type === 'cryptoBasket' ? prev.cryptoBasketValue + actual : prev.cryptoBasketValue,
+      }
+    })
+  }, [])
+
+  const handleWithdrawCore = useCallback((type: CoreInvestmentId, amount: number) => {
+    setGameState(prev => {
+      const held = type === 'bank' ? prev.bankValue : type === 'index' ? prev.indexValue : prev.cryptoBasketValue
+      const actual = Math.min(amount, Math.floor(held))
+      if (actual < 100) return prev
+      return {
+        ...prev,
+        cash: prev.cash + actual,
+        bankValue:         type === 'bank'         ? prev.bankValue         - actual : prev.bankValue,
+        indexValue:        type === 'index'        ? prev.indexValue        - actual : prev.indexValue,
+        cryptoBasketValue: type === 'cryptoBasket' ? prev.cryptoBasketValue - actual : prev.cryptoBasketValue,
       }
     })
   }, [])
@@ -323,6 +338,7 @@ export default function App() {
           onCarBuy={handleCarBuy}
           onCarSkip={handleCarSkip}
           onInvestCore={handleInvestCore}
+          onWithdrawCore={handleWithdrawCore}
           onBuyStock={handleBuyStock}
           onSellStock={handleSellStock}
           onBuyCrypto={handleBuyCrypto}

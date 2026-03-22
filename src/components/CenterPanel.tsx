@@ -10,6 +10,7 @@ interface Props {
   onCarBuy: () => void
   onCarSkip: () => void
   onInvestCore: (type: CoreInvestmentId, amount: number) => void
+  onWithdrawCore: (type: CoreInvestmentId, amount: number) => void
   onBuyStock: (id: StockId, shares: number) => void
   onSellStock: (id: StockId, shares: number) => void
   onBuyCrypto: (id: CryptoId, units: number) => void
@@ -69,10 +70,12 @@ interface CoreTileProps {
   locked: boolean
   lockMsg?: string
   cash: number
+  canWithdraw?: boolean
   onInvest: (amount: number) => void
+  onWithdraw: (amount: number) => void
 }
 
-function CoreTile({ id, icon, name, value, returnRate, riskLabel, riskClass, locked, lockMsg, cash, onInvest }: CoreTileProps) {
+function CoreTile({ icon, name, value, returnRate, riskLabel, riskClass, locked, lockMsg, cash, canWithdraw, onInvest, onWithdraw }: CoreTileProps) {
   const [expanded, setExpanded] = useState(false)
   const isPositive = !returnRate.startsWith('−')
 
@@ -98,20 +101,29 @@ function CoreTile({ id, icon, name, value, returnRate, riskLabel, riskClass, loc
             <button className="inv-btn inv-btn-all" disabled={cash < 100} onClick={() => onInvest(Math.floor(cash * 0.9))}>
               +90%
             </button>
-            <button className="inv-btn inv-btn-done" onClick={() => setExpanded(false)}>done ✓</button>
           </div>
-          {value > 0 && (
-            <div className="inv-expand-holding">Holding: {fmt(value)}</div>
+          {canWithdraw && value > 0 && (
+            <div className="inv-expand-btns inv-withdraw-btns">
+              {[500, 1000, 5000].map(amt => (
+                <button key={amt} className="inv-btn inv-btn-sell" disabled={value < amt} onClick={() => onWithdraw(amt)}>
+                  −${amt >= 1000 ? amt / 1000 + 'k' : amt}
+                </button>
+              ))}
+              <button className="inv-btn inv-btn-sell inv-btn-all" disabled={value <= 0} onClick={() => onWithdraw(Math.floor(value))}>
+                −all
+              </button>
+            </div>
           )}
+          <button className="inv-btn inv-btn-done" onClick={() => setExpanded(false)}>done ✓</button>
         </div>
       )}
     </div>
   )
 }
 
-// ── Stock tile ────────────────────────────────────────────────────────────────
+// ── Stock/crypto tile ─────────────────────────────────────────────────────────
 
-interface StockTileProps {
+interface AssetTileProps {
   id: StockId | CryptoId
   ticker: string
   company: string
@@ -124,9 +136,9 @@ interface StockTileProps {
   onSell: (qty: number) => void
 }
 
-function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto, onBuy, onSell }: StockTileProps) {
+function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto, onBuy, onSell }: AssetTileProps) {
   const [expanded, setExpanded] = useState(false)
-  const [qty, setQty] = useState(1)
+  const [qty, setQty] = useState(isCrypto ? 0.01 : 1)
   void id
 
   const prev = sparkline.length >= 2 ? sparkline[sparkline.length - 2] : sparkline[0]
@@ -156,9 +168,9 @@ function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto
       {expanded && (
         <div className="st-expand" onClick={e => e.stopPropagation()}>
           <div className="st-qty-row">
-            <button className="st-qty-btn" onClick={() => setQty(q => Math.max(minQty, q - (isCrypto ? 0.01 : 1)))}>−</button>
+            <button className="st-qty-btn" onClick={() => setQty(q => Math.max(minQty, parseFloat((q - minQty).toFixed(2))))}>−</button>
             <span className="st-qty-val">{isCrypto ? qty.toFixed(2) : qty}</span>
-            <button className="st-qty-btn" onClick={() => setQty(q => q + (isCrypto ? 0.01 : 1))}>+</button>
+            <button className="st-qty-btn" onClick={() => setQty(q => parseFloat((q + minQty).toFixed(2)))}>+</button>
           </div>
           <div className="st-cost">cost: {fmtPrice(buyCost)}</div>
           <div className="st-expand-btns">
@@ -180,11 +192,10 @@ function AssetTile({ id, ticker, company, price, sparkline, held, cash, isCrypto
 
 export default function CenterPanel({
   state, onEventChoice, onCarBuy, onCarSkip,
-  onInvestCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
+  onInvestCore, onWithdrawCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
 }: Props) {
   const nw = calcNetWorth(state)
   const cryptoUnlocked = state.year >= 10
-  const realEstateUnlocked = state.year >= 7
 
   return (
     <div className="center-panel">
@@ -229,24 +240,24 @@ export default function CenterPanel({
           <CoreTile
             id="bank" icon="🏦" name="Bank Savings" value={state.bankValue}
             returnRate="+1.5%/yr" riskLabel="no risk" riskClass="safe"
-            locked={false} cash={state.cash} onInvest={amt => onInvestCore('bank', amt)}
+            locked={false} cash={state.cash} canWithdraw
+            onInvest={amt => onInvestCore('bank', amt)}
+            onWithdraw={amt => onWithdrawCore('bank', amt)}
           />
           <CoreTile
             id="index" icon="📈" name="Index Fund" value={state.indexValue}
             returnRate="+7%/yr avg" riskLabel="medium risk" riskClass="medium"
-            locked={false} cash={state.cash} onInvest={amt => onInvestCore('index', amt)}
+            locked={false} cash={state.cash} canWithdraw
+            onInvest={amt => onInvestCore('index', amt)}
+            onWithdraw={amt => onWithdrawCore('index', amt)}
           />
           <CoreTile
-            id="realEstate" icon="🏡" name="Real Estate" value={state.realEstateValue}
-            returnRate="+6%/yr" riskLabel="medium risk" riskClass="medium"
-            locked={!realEstateUnlocked} lockMsg={`🔒 unlocks yr 7 (yr ${state.year})`}
-            cash={state.cash} onInvest={amt => onInvestCore('realEstate', amt)}
-          />
-          <CoreTile
-            id="cryptoPool" icon="🪙" name="Crypto Pool" value={state.cryptoPoolValue}
-            returnRate="+20%/yr avg" riskLabel="extreme risk" riskClass="extreme"
+            id="cryptoBasket" icon="🪙" name="Crypto Basket" value={state.cryptoBasketValue}
+            returnRate="+22%/yr avg" riskLabel="extreme risk" riskClass="extreme"
             locked={!cryptoUnlocked} lockMsg={`🔒 unlocks yr 10 (yr ${state.year})`}
-            cash={state.cash} onInvest={amt => onInvestCore('cryptoPool', amt)}
+            cash={state.cash} canWithdraw
+            onInvest={amt => onInvestCore('cryptoBasket', amt)}
+            onWithdraw={amt => onWithdrawCore('cryptoBasket', amt)}
           />
         </div>
       </div>

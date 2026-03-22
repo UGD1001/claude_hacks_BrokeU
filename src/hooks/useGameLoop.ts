@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
-import type { GameState, StockId, CryptoId, EventChoice, SideHustleId, House, CompHouse, MortgageTerm } from '../types'
+import type { GameState, StockId, CryptoId, EventChoice, SideHustleId, House, MortgageTerm } from '../types'
 import {
   TOTAL_YEARS, HALF_YEAR_SEC, CAR_GOAL,
   STOCK_IDS, CRYPTO_IDS,
   MARKET_PARAMS, LIFE_EVENTS, ACHIEVEMENTS, SIDE_HUSTLE_NOTIFICATIONS,
-  SIDE_HUSTLES, HOUSE_OPTIONS, HOUSE_OFFER_CASH_THRESHOLD,
+  HOUSE_OPTIONS, HOUSE_OFFER_CASH_THRESHOLD,
   computeMonthlyPayment, MORTGAGE_RATES,
   calcNetWorth, calcCompNetWorth, getSideHustleAnnualIncome,
   COMP_SALARY, COMP_RENT, COMP_EXPENSES, COMP_TUITION,
@@ -253,7 +253,7 @@ function applyHalfYearTick(prev: GameState): GameState {
     if (!s.compHouse || s.compHouse.mortgageMonthsPaid >= s.compHouse.mortgageTotalMonths) return 0
     return s.compHouse.monthlyPayment * 6
   })()
-  const compApartmentRent = s.compHouse?.movedIn ? 0 : COMP_RENT * 6
+  const compApartmentRent = s.compHouse ? 0 : COMP_RENT * 6   // computer always moves in
 
   const compHalfSurplus = COMP_SALARY / 2
     - compApartmentRent
@@ -283,15 +283,15 @@ function applyHalfYearTick(prev: GameState): GameState {
     const payment = computeMonthlyPayment(principal, rate, term)
     s.compCash -= down
     s.compHouse = {
-      purchasePrice:      h.price,
-      currentValue:       h.price,
-      mortgageBalance:    principal,
-      monthlyPayment:     payment,
-      mortgageMonthsPaid: 0,
+      purchasePrice:       h.price,
+      currentValue:        h.price,
+      mortgageBalance:     principal,
+      mortgageRate:        rate,
+      monthlyPayment:      payment,
+      mortgageMonthsPaid:  0,
       mortgageTotalMonths: term * 12,
-      appreciationRate:   h.appreciationRate,
-      movedIn:            true,
-    } as CompHouse & { movedIn: boolean }
+      appreciationRate:    h.appreciationRate,
+    }
     s.compHouseBought = true
     pushToast(s, '🤖 Computer bought a house!')
   }
@@ -483,7 +483,7 @@ export function applyEventChoice(prev: GameState, choice: EventChoice): GameStat
   // House repair choices
   if (choice.payRepair         !== undefined) s.cash     -= choice.payRepair
   if (choice.houseRepairDebt   !== undefined) s.loanDebt += choice.houseRepairDebt
-  if (choice.houseAppreciationMod)            s.houseAppreciationMod = choice.houseAppreciationMod
+  if (choice.houseAppreciationMod)            s.houseAppreciationMod = { delta: choice.houseAppreciationMod.delta, yearsLeft: choice.houseAppreciationMod.years }
 
   s.activeEvent  = null
   s.isPaused     = false

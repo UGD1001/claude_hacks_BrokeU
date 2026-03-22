@@ -1,5 +1,5 @@
 import type { GameState } from '../types'
-import { calcNetWorth, TOTAL_YEARS, YEAR_SEC } from '../gameData'
+import { calcNetWorth, TOTAL_YEARS, HALF_YEAR_SEC } from '../gameData'
 
 interface NavProps {
   state: GameState
@@ -24,9 +24,11 @@ export default function Nav({ state, onBack }: NavProps) {
   const isGame = state.screen === 'game'
   const netWorth = isGame ? calcNetWorth(state) : 0
 
-  // Time remaining = time until next year + years remaining × 60
-  const yearsLeft = Math.max(0, TOTAL_YEARS - state.year + 1)
-  const totalSecsLeft = isGame ? state.timeToNextYear + (yearsLeft - 1) * YEAR_SEC : 0
+  // Total game = 40 half-years × 30s = 1200s
+  // Remaining = (39 - halfYearsElapsed) × HALF_YEAR_SEC + timeToNextHalfYear
+  const totalSecsLeft = isGame
+    ? Math.max(0, (39 - state.halfYearsElapsed) * HALF_YEAR_SEC + state.timeToNextHalfYear)
+    : 0
 
   return (
     <nav className="nav">

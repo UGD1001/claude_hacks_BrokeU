@@ -86,6 +86,7 @@ export interface CompHouse {
   purchasePrice: number
   currentValue: number
   mortgageBalance: number
+  mortgageRate: number
   monthlyPayment: number
   mortgageMonthsPaid: number
   mortgageTotalMonths: number
