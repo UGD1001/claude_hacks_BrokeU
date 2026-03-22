@@ -1,40 +1,41 @@
-import type { GameState, IncomeSourceId } from '../types'
-import type { EventChoice } from '../types'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, SideHustleId } from '../types'
 import LeftPanel from './LeftPanel'
-import RightPanel from './RightPanel'
-import BillToast from './BillToast'
+import CenterPanel from './CenterPanel'
 import AchievementToast from './AchievementToast'
 
-interface GameScreenProps {
+interface Props {
   state: GameState
-  onToggleSource: (id: IncomeSourceId) => void
-  onPurchaseSource: (id: IncomeSourceId) => void
-  onInvest: (id: IncomeSourceId, amount: number) => void
-  onEventChoice: (choice: EventChoice) => void
+  onEventChoice: (c: EventChoice) => void
+  onCarBuy: () => void
+  onCarSkip: () => void
+  onInvestCore: (type: CoreInvestmentId, amount: number) => void
+  onBuyStock: (id: StockId, shares: number) => void
+  onSellStock: (id: StockId, shares: number) => void
+  onBuyCrypto: (id: CryptoId, units: number) => void
+  onSellCrypto: (id: CryptoId, units: number) => void
+  onActivateHustle: (id: SideHustleId, cost: number) => void
 }
 
 export default function GameScreen({
   state,
-  onToggleSource,
-  onPurchaseSource,
-  onInvest,
-  onEventChoice,
-}: GameScreenProps) {
-  const investTotal = Object.values(state.investments).reduce((a, b) => a + b, 0)
-  const netWorth = state.cash + investTotal - state.debt
-
+  onEventChoice, onCarBuy, onCarSkip,
+  onInvestCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
+  onActivateHustle,
+}: Props) {
   return (
     <div className="game-screen">
-      <LeftPanel state={state} />
-      <RightPanel
+      <LeftPanel state={state} onActivateHustle={onActivateHustle} />
+      <CenterPanel
         state={state}
-        onToggleSource={onToggleSource}
-        onPurchaseSource={onPurchaseSource}
-        onInvest={onInvest}
         onEventChoice={onEventChoice}
-        netWorth={netWorth}
+        onCarBuy={onCarBuy}
+        onCarSkip={onCarSkip}
+        onInvestCore={onInvestCore}
+        onBuyStock={onBuyStock}
+        onSellStock={onSellStock}
+        onBuyCrypto={onBuyCrypto}
+        onSellCrypto={onSellCrypto}
       />
-      <BillToast toasts={state.billToasts} />
       <AchievementToast toasts={state.achievementToasts} />
     </div>
   )

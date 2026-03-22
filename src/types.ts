@@ -1,70 +1,26 @@
-export type Screen = 'menu' | 'goalselect' | 'game' | 'victory' | 'gameover'
+export type Screen = 'menu' | 'setup' | 'game' | 'endgame'
 
-export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
-
-export interface Goal {
-  id: string
-  icon: string
-  name: string
-  amount: number
-  duration: number
-  difficulty: Difficulty
-}
-
-export type IncomeSourceId =
-  | 'dayjob'
-  | 'hustle'
-  | 'hysa'
-  | 'index'
-  | 'dividend'
-  | 'digital'
-  | 'crypto'
-  | 'biz'
-  | 'rental'
-
-export type RiskLevel = 'safe' | 'medium' | 'high' | 'extreme'
-
-export interface IncomeSource {
-  id: IncomeSourceId
-  icon: string
-  name: string
-  ratePerSec: number
-  variance: number
-  riskLevel: RiskLevel
-  unlockNetWorth: number
-  setupCost: number
-  isInvestment: boolean
-  investRatePerMin?: number
-}
-
-export interface Bill {
-  id: string
-  name: string
-  amount: number
-  intervalSec: number
-}
+export type StockId = 'AAPL' | 'TSLA' | 'MSFT' | 'AMZN' | 'NVDA' | 'GOOG'
+export type CryptoId = 'BTC' | 'ETH' | 'SOL' | 'DOGE'
+export type SideHustleId = 'freelance' | 'store' | 'content' | 'digital' | 'rental'
+export type CoreInvestmentId = 'bank' | 'index' | 'realEstate' | 'cryptoPool'
 
 export interface EventChoice {
   key: string
   label: string
-  cost?: number
-  debt?: number
-  sellInvestment?: IncomeSourceId
-  sellAmount?: number
-  sellAll?: boolean
-  nothing?: boolean
-  buyDip?: boolean
-  upgradeJob?: boolean
-  lend?: number
-  gamble?: number
-  bonus?: number
-  investBonus?: boolean
-  boostHustle?: number
-  duration?: number
-  futureDebt?: number
-  stressChange: number
-  outcomeClass: 'good' | 'neutral' | 'bad'
   outcome: string
+  outcomeClass: 'good' | 'neutral' | 'bad'
+  cashChange?: number        // direct cash delta
+  addDebt?: number           // add to loan debt
+  investInIndex?: number     // add amount to index fund
+  sellAllInvestments?: boolean
+  sellIndexAmount?: number   // sell specific amount from index
+  lend?: number              // lend cash (returned in 3 years)
+  gamble?: number            // gamble this amount
+  salaryMultiplier?: number  // multiply salary permanently
+  rentHikeMonthly?: number   // add to monthly rent permanently
+  expenseAddMonthly?: number // add to monthly expenses permanently
+  loseHalfYearIncome?: boolean
 }
 
 export interface GameEvent {
@@ -75,47 +31,99 @@ export interface GameEvent {
   choices: EventChoice[]
 }
 
-export interface BillToastItem {
-  id: string
-  name: string
-  amount: number
-  ts: number
-}
-
 export interface AchievementToastItem {
   id: string
   text: string
   ts: number
 }
 
+export interface YearSnapshot {
+  year: number
+  playerNW: number
+  compNW: number
+}
+
 export interface GameState {
   screen: Screen
-  selectedGoal: Goal | null
-  cash: number
-  stress: number
-  gpa: number
-  knowledge: number
-  activeIncomeSources: IncomeSourceId[]
-  purchasedSources: IncomeSourceId[]
-  investments: Record<IncomeSourceId, number>
-  debt: number
-  debtInterestPerSec: number
-  timeRemaining: number
+
+  // Player setup profile
+  playerName: string
+  salary: number          // annual
+  rent: number            // monthly
+  monthlyExpenses: number
+  tuitionDebt: number     // starting total
+
+  // Game time
+  year: number            // 1–20
+  timeToNextYear: number  // real seconds until next year tick
   gameTick: number
-  nextEventIn: number
-  activeEvent: GameEvent | null
-  eventCountdown: number
-  hustleBoost: number
-  hustleBoostRemaining: number
-  jobUpgraded: boolean
+  isPaused: boolean
+
+  // Cash
+  cash: number
+
+  // Debts
+  loanDebt: number
+  tuitionRemaining: number
+
+  // Core investments ($)
+  bankValue: number
+  indexValue: number
+  realEstateValue: number
+  cryptoPoolValue: number
+
+  // Stocks: shares held
+  stockHeld: Record<StockId, number>
+  stockPrices: Record<StockId, number>
+  stockSparklines: Record<StockId, number[]>
+
+  // Cryptos: units held (unlocked at year 10)
+  cryptoHeld: Record<CryptoId, number>
+  cryptoPrices: Record<CryptoId, number>
+  cryptoSparklines: Record<CryptoId, number[]>
+
+  // Car asset
+  carOwned: boolean
+  carValue: number
+
+  // Phase
+  phase: 'car' | 'networth'
+  showCarModal: boolean
+  carModalShown: boolean   // only show once
+
+  // Side hustles
+  activeSideHustles: SideHustleId[]
+  sideHustleYearsActive: Partial<Record<SideHustleId, number>>
+
+  // Permanent modifiers from events
+  salaryMultiplier: number
+  rentExtra: number
+  expensesExtra: number
+
+  // Lent money
   lentMoney: number
-  lentReturnIn: number
-  billToasts: BillToastItem[]
+  lentReturnYear: number  // year it comes back
+
+  // Computer opponent
+  compCash: number
+  compIndexValue: number
+  compCarOwned: boolean
+  compCarValue: number
+  compTuitionRemaining: number
+
+  // History (index = year - 1)
+  snapshots: YearSnapshot[]
+
+  // Active event
+  activeEvent: GameEvent | null
+  nextEventYear: number
+
+  // Toasts & achievements
   achievementToasts: AchievementToastItem[]
   achievementsUnlocked: string[]
+  codexUnlocked: string[]
+
+  // End game reason (for endgame screen)
   gameOverReason: string
-  cryptoLastEvent: number
-  indexLastCrash: number
-  pendingDebt: number
-  pendingDebtIn: number
+  playerWon: boolean
 }

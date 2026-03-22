@@ -1,332 +1,313 @@
 import { useState, useCallback } from 'react'
-import type { GameState, Goal, IncomeSourceId, EventChoice } from './types'
-import { INCOME_SOURCES } from './gameData'
-import { useGameLoop } from './hooks/useGameLoop'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice } from './types'
+import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, COMP_TUITION } from './gameData'
+import { useGameLoop, applyEventChoice } from './hooks/useGameLoop'
 import Nav from './components/Nav'
 import MenuScreen from './components/MenuScreen'
-import GoalSelectScreen from './components/GoalSelectScreen'
+import SetupScreen from './components/SetupScreen'
 import GameScreen from './components/GameScreen'
-import VictoryScreen from './components/VictoryScreen'
-import GameOverScreen from './components/GameOverScreen'
+import EndGameScreen from './components/EndGameScreen'
+import AchievementToast from './components/AchievementToast'
 
-function makeInitialState(): GameState {
-  const investments: Record<string, number> = {}
-  for (const src of INCOME_SOURCES) {
-    investments[src.id] = 0
-  }
+interface SetupConfig {
+  name: string
+  salary: number
+  rent: number
+  expenses: number
+  tuitionDebt: number
+}
+
+function makeInitialState(setup: SetupConfig): GameState {
+  const { stockPrices, stockSparklines, cryptoPrices, cryptoSparklines } = makeInitialMarketData()
+
+  const stockHeld = {} as Record<StockId, number>
+  const cryptoHeld = {} as Record<CryptoId, number>
+  for (const id of STOCK_IDS) stockHeld[id] = 0
+  for (const id of CRYPTO_IDS) cryptoHeld[id] = 0
+
   return {
-    screen: 'menu',
-    selectedGoal: null,
-    cash: 300,
-    stress: 30,
-    gpa: 3.1,
-    knowledge: 14,
-    activeIncomeSources: ['dayjob', 'hustle'],
-    purchasedSources: ['dayjob', 'hustle'],
-    investments: investments as Record<IncomeSourceId, number>,
-    debt: 0,
-    debtInterestPerSec: 0,
-    timeRemaining: 0,
+    screen: 'game',
+    playerName: setup.name || 'Player',
+    salary: setup.salary,
+    rent: setup.rent,
+    monthlyExpenses: setup.expenses,
+    tuitionDebt: setup.tuitionDebt,
+
+    year: 1,
+    timeToNextYear: 60,
     gameTick: 0,
-    nextEventIn: 25,
-    activeEvent: null,
-    eventCountdown: 0,
-    hustleBoost: 1,
-    hustleBoostRemaining: 0,
-    jobUpgraded: false,
+    isPaused: false,
+
+    cash: 500,
+
+    loanDebt: 0,
+    tuitionRemaining: setup.tuitionDebt,
+
+    bankValue: 0,
+    indexValue: 0,
+    realEstateValue: 0,
+    cryptoPoolValue: 0,
+
+    stockHeld,
+    stockPrices,
+    stockSparklines,
+
+    cryptoHeld,
+    cryptoPrices,
+    cryptoSparklines,
+
+    carOwned: false,
+    carValue: 0,
+
+    phase: 'car',
+    showCarModal: false,
+    carModalShown: false,
+
+    activeSideHustles: [],
+    sideHustleYearsActive: {},
+
+    salaryMultiplier: 1,
+    rentExtra: 0,
+    expensesExtra: 0,
+
     lentMoney: 0,
-    lentReturnIn: 0,
-    billToasts: [],
+    lentReturnYear: 0,
+
+    compCash: 500,
+    compIndexValue: 0,
+    compCarOwned: false,
+    compCarValue: 0,
+    compTuitionRemaining: COMP_TUITION,
+
+    snapshots: [],
+
+    activeEvent: null,
+    nextEventYear: 3,
+
     achievementToasts: [],
     achievementsUnlocked: [],
+    codexUnlocked: [],
+
     gameOverReason: '',
-    cryptoLastEvent: 0,
-    indexLastCrash: 0,
-    pendingDebt: 0,
-    pendingDebtIn: 0,
+    playerWon: false,
   }
 }
 
 export default function App() {
-  const [gameState, setGameState] = useState<GameState>(makeInitialState())
+  const [gameState, setGameState] = useState<GameState>({
+    screen: 'menu',
+    playerName: '',
+    salary: 50000,
+    rent: 1200,
+    monthlyExpenses: 800,
+    tuitionDebt: 0,
+    year: 1,
+    timeToNextYear: 60,
+    gameTick: 0,
+    isPaused: false,
+    cash: 500,
+    loanDebt: 0,
+    tuitionRemaining: 0,
+    bankValue: 0,
+    indexValue: 0,
+    realEstateValue: 0,
+    cryptoPoolValue: 0,
+    stockHeld: {} as Record<StockId, number>,
+    stockPrices: {} as Record<StockId, number>,
+    stockSparklines: {} as Record<StockId, number[]>,
+    cryptoHeld: {} as Record<CryptoId, number>,
+    cryptoPrices: {} as Record<CryptoId, number>,
+    cryptoSparklines: {} as Record<CryptoId, number[]>,
+    carOwned: false,
+    carValue: 0,
+    phase: 'car',
+    showCarModal: false,
+    carModalShown: false,
+    activeSideHustles: [],
+    sideHustleYearsActive: {},
+    salaryMultiplier: 1,
+    rentExtra: 0,
+    expensesExtra: 0,
+    lentMoney: 0,
+    lentReturnYear: 0,
+    compCash: 500,
+    compIndexValue: 0,
+    compCarOwned: false,
+    compCarValue: 0,
+    compTuitionRemaining: COMP_TUITION,
+    snapshots: [],
+    activeEvent: null,
+    nextEventYear: 3,
+    achievementToasts: [],
+    achievementsUnlocked: [],
+    codexUnlocked: [],
+    gameOverReason: '',
+    playerWon: false,
+  })
 
   useGameLoop(gameState, setGameState)
 
   const handleNewGame = useCallback(() => {
-    setGameState(prev => ({ ...prev, screen: 'goalselect' }))
+    setGameState(prev => ({ ...prev, screen: 'setup' }))
   }, [])
 
-  const handleSelectGoal = useCallback((goal: Goal) => {
-    setGameState(_prev => ({
-      ...makeInitialState(),
-      screen: 'game',
-      selectedGoal: goal,
-      timeRemaining: goal.duration,
-      gameTick: 0,
-      nextEventIn: 25,
+  const handleStartGame = useCallback((setup: SetupConfig) => {
+    setGameState(makeInitialState(setup))
+  }, [])
+
+  const handleEventChoice = useCallback((choice: EventChoice) => {
+    setGameState(prev => applyEventChoice(prev, choice))
+  }, [])
+
+  const handleCarBuy = useCallback(() => {
+    setGameState(prev => {
+      let s = { ...prev, showCarModal: false, isPaused: false, phase: 'networth' as const }
+      const cost = 25000
+      if (s.cash >= cost) {
+        s.cash -= cost
+      } else {
+        const fromIndex = Math.min(cost - s.cash, s.indexValue)
+        s.indexValue -= fromIndex
+        s.cash -= (cost - fromIndex)
+      }
+      s.carOwned = true
+      s.carValue = cost
+      return s
+    })
+  }, [])
+
+  const handleCarSkip = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      showCarModal: false,
+      isPaused: false,
+      phase: 'networth',
     }))
   }, [])
 
-  const handleToggleSource = useCallback((id: IncomeSourceId) => {
-    setGameState(prev => {
-      const isActive = prev.activeIncomeSources.includes(id)
-      return {
-        ...prev,
-        activeIncomeSources: isActive
-          ? prev.activeIncomeSources.filter(s => s !== id)
-          : [...prev.activeIncomeSources, id],
-      }
-    })
-  }, [])
-
-  const handlePurchaseSource = useCallback((id: IncomeSourceId) => {
-    const src = INCOME_SOURCES.find(s => s.id === id)
-    if (!src) return
-    setGameState(prev => {
-      if (prev.cash < src.setupCost) return prev
-      const newPurchased = [...prev.purchasedSources, id]
-      const newActive = src.isInvestment
-        ? prev.activeIncomeSources
-        : [...prev.activeIncomeSources, id]
-      return {
-        ...prev,
-        cash: prev.cash - src.setupCost,
-        purchasedSources: newPurchased,
-        activeIncomeSources: newActive,
-      }
-    })
-  }, [])
-
-  const handleInvest = useCallback((id: IncomeSourceId, amount: number) => {
+  const handleInvestCore = useCallback((type: CoreInvestmentId, amount: number) => {
     setGameState(prev => {
       const actual = Math.min(amount, Math.floor(prev.cash))
       if (actual < 100) return prev
       return {
         ...prev,
         cash: prev.cash - actual,
-        investments: {
-          ...prev.investments,
-          [id]: (prev.investments[id] ?? 0) + actual,
-        },
+        bankValue: type === 'bank' ? prev.bankValue + actual : prev.bankValue,
+        indexValue: type === 'index' ? prev.indexValue + actual : prev.indexValue,
+        realEstateValue: type === 'realEstate' ? prev.realEstateValue + actual : prev.realEstateValue,
+        cryptoPoolValue: type === 'cryptoPool' ? prev.cryptoPoolValue + actual : prev.cryptoPoolValue,
       }
     })
   }, [])
 
-  const handleEventChoice = useCallback((choice: EventChoice) => {
+  const handleBuyStock = useCallback((id: StockId, shares: number) => {
     setGameState(prev => {
-      let state = {
+      const cost = Math.ceil(prev.stockPrices[id] * shares)
+      if (prev.cash < cost || shares <= 0) return prev
+      return {
         ...prev,
-        investments: { ...prev.investments },
-        activeIncomeSources: [...prev.activeIncomeSources],
-        achievementToasts: [...prev.achievementToasts],
+        cash: prev.cash - cost,
+        stockHeld: { ...prev.stockHeld, [id]: prev.stockHeld[id] + shares },
       }
-
-      // Apply stress
-      state.stress = Math.max(0, Math.min(100, state.stress + choice.stressChange))
-
-      // Cash cost
-      if (choice.cost !== undefined) {
-        state.cash += choice.cost
-      }
-
-      // Bonus cash
-      if (choice.bonus !== undefined) {
-        state.cash += choice.bonus
-        if (choice.investBonus) {
-          // Put bonus into HYSA if purchased, else just add to cash
-          const hysa = state.purchasedSources.includes('hysa')
-          if (hysa) {
-            state.investments = {
-              ...state.investments,
-              hysa: (state.investments['hysa'] ?? 0) + choice.bonus,
-            }
-            state.cash -= choice.bonus // move to investment
-          }
-        }
-      }
-
-      // Debt
-      if (choice.debt !== undefined) {
-        state.debt = (state.debt || 0) + choice.debt
-      }
-
-      // Sell investment
-      if (choice.sellInvestment && choice.sellAmount !== undefined) {
-        const invId = choice.sellInvestment
-        const currentVal = state.investments[invId] ?? 0
-        const sellAmt = Math.min(choice.sellAmount, currentVal)
-        state.investments = {
-          ...state.investments,
-          [invId]: currentVal - sellAmt,
-        }
-        state.cash += sellAmt
-      }
-
-      // Sell all investments
-      if (choice.sellAll) {
-        let total = 0
-        const newInv = { ...state.investments }
-        for (const k of Object.keys(newInv) as IncomeSourceId[]) {
-          total += newInv[k] ?? 0
-          newInv[k] = 0
-        }
-        state.investments = newInv
-        state.cash += total * 0.8 // 20% loss from panic sell
-      }
-
-      // Buy the dip
-      if (choice.buyDip && choice.cost !== undefined) {
-        const amt = Math.abs(choice.cost)
-        const invId: IncomeSourceId = 'index'
-        if (state.purchasedSources.includes(invId)) {
-          state.investments = {
-            ...state.investments,
-            [invId]: (state.investments[invId] ?? 0) + amt,
-          }
-        } else {
-          // give to first purchased investment
-          state.cash += amt
-        }
-      }
-
-      // Upgrade job
-      if (choice.upgradeJob) {
-        state.jobUpgraded = true
-        // During transition, pause day job for 60s by using boost mechanism
-        // Actually implement as: job income pauses for 60s then +25/s permanently
-        // We'll just apply upgrade immediately but user sees +25/s from now
-      }
-
-      // Lend money
-      if (choice.lend !== undefined) {
-        const lendAmt = Math.min(choice.lend, state.cash)
-        state.cash -= lendAmt
-        state.lentMoney = lendAmt
-        state.lentReturnIn = 90
-      }
-
-      // Gamble
-      if (choice.gamble !== undefined) {
-        const betAmt = Math.min(choice.gamble, state.cash)
-        if (betAmt > 0) {
-          state.cash -= betAmt
-          const win = Math.random() < 0.3
-          if (win) {
-            state.cash += betAmt * 10
-            state.achievementToasts = [
-              ...state.achievementToasts,
-              {
-                id: `gamble-win-${Date.now()}`,
-                text: `🎰 YOU WON! +${('$' + Math.floor(betAmt * 10).toLocaleString('en-US'))}`,
-                ts: Date.now(),
-              },
-            ]
-          } else {
-            const loss = betAmt * 0.8
-            // Already removed from cash; return 20%
-            state.cash += betAmt - loss
-            state.achievementToasts = [
-              ...state.achievementToasts,
-              {
-                id: `gamble-loss-${Date.now()}`,
-                text: `💀 Lost $${Math.floor(loss).toLocaleString('en-US')} gambling`,
-                ts: Date.now(),
-              },
-            ]
-          }
-        }
-      }
-
-      // Boost hustle
-      if (choice.boostHustle !== undefined) {
-        state.hustleBoost = choice.boostHustle
-        state.hustleBoostRemaining = choice.duration ?? 60
-      }
-
-      // Future debt (installments)
-      if (choice.futureDebt !== undefined) {
-        state.pendingDebt = choice.futureDebt
-        state.pendingDebtIn = 60
-      }
-
-      // Clear event, schedule next
-      state.activeEvent = null
-      state.eventCountdown = 0
-      state.nextEventIn = 20 + Math.random() * 30
-
-      return state
     })
   }, [])
 
-  const handleBack = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      screen: prev.screen === 'goalselect' ? 'menu' : 'menu',
-    }))
+  const handleSellStock = useCallback((id: StockId, shares: number) => {
+    setGameState(prev => {
+      const actual = Math.min(shares, prev.stockHeld[id])
+      if (actual <= 0) return prev
+      const proceeds = prev.stockPrices[id] * actual
+      return {
+        ...prev,
+        cash: prev.cash + proceeds,
+        stockHeld: { ...prev.stockHeld, [id]: prev.stockHeld[id] - actual },
+      }
+    })
+  }, [])
+
+  const handleBuyCrypto = useCallback((id: CryptoId, units: number) => {
+    setGameState(prev => {
+      if (prev.year < 10) return prev
+      const cost = prev.cryptoPrices[id] * units
+      if (prev.cash < cost || units <= 0) return prev
+      return {
+        ...prev,
+        cash: prev.cash - cost,
+        cryptoHeld: { ...prev.cryptoHeld, [id]: prev.cryptoHeld[id] + units },
+      }
+    })
+  }, [])
+
+  const handleSellCrypto = useCallback((id: CryptoId, units: number) => {
+    setGameState(prev => {
+      const actual = Math.min(units, prev.cryptoHeld[id])
+      if (actual <= 0) return prev
+      const proceeds = prev.cryptoPrices[id] * actual
+      return {
+        ...prev,
+        cash: prev.cash + proceeds,
+        cryptoHeld: { ...prev.cryptoHeld, [id]: prev.cryptoHeld[id] - actual },
+      }
+    })
+  }, [])
+
+  const handleActivateHustle = useCallback((id: import('./types').SideHustleId, cost: number) => {
+    setGameState(prev => {
+      if (prev.cash < cost) return prev
+      return {
+        ...prev,
+        cash: prev.cash - cost,
+        activeSideHustles: [...prev.activeSideHustles, id],
+        sideHustleYearsActive: { ...prev.sideHustleYearsActive, [id]: 0 },
+      }
+    })
   }, [])
 
   const handlePlayAgain = useCallback(() => {
-    setGameState(_prev => ({
-      ...makeInitialState(),
-      screen: 'goalselect',
-    }))
+    setGameState(prev => ({ ...prev, screen: 'setup' }))
   }, [])
 
   const handleMenu = useCallback(() => {
-    setGameState(makeInitialState())
+    setGameState(prev => ({ ...prev, screen: 'menu' }))
   }, [])
-
-  const investTotal = Object.values(gameState.investments).reduce((a, b) => a + b, 0)
-  const netWorth = gameState.cash + investTotal - gameState.debt
 
   return (
     <>
-      <Nav
-        screen={gameState.screen}
-        netWorth={netWorth}
-        onBack={gameState.screen === 'goalselect' ? handleBack : undefined}
-      />
+      <Nav state={gameState} onBack={gameState.screen === 'setup' ? handleMenu : undefined} />
 
       {gameState.screen === 'menu' && (
-        <MenuScreen
-          onNewGame={handleNewGame}
-          gpa={gameState.gpa}
-          knowledge={gameState.knowledge}
-          stress={gameState.stress}
-        />
+        <MenuScreen onNewGame={handleNewGame} />
       )}
 
-      {gameState.screen === 'goalselect' && (
-        <GoalSelectScreen
-          onSelectGoal={handleSelectGoal}
-          onBack={handleBack}
-        />
+      {gameState.screen === 'setup' && (
+        <SetupScreen onStart={handleStartGame} onBack={handleMenu} />
       )}
 
       {gameState.screen === 'game' && (
         <GameScreen
           state={gameState}
-          onToggleSource={handleToggleSource}
-          onPurchaseSource={handlePurchaseSource}
-          onInvest={handleInvest}
           onEventChoice={handleEventChoice}
+          onCarBuy={handleCarBuy}
+          onCarSkip={handleCarSkip}
+          onInvestCore={handleInvestCore}
+          onBuyStock={handleBuyStock}
+          onSellStock={handleSellStock}
+          onBuyCrypto={handleBuyCrypto}
+          onSellCrypto={handleSellCrypto}
+          onActivateHustle={handleActivateHustle}
         />
       )}
 
-      {gameState.screen === 'victory' && (
-        <VictoryScreen
+      {gameState.screen === 'endgame' && (
+        <EndGameScreen
           state={gameState}
           onPlayAgain={handlePlayAgain}
           onMenu={handleMenu}
         />
       )}
 
-      {gameState.screen === 'gameover' && (
-        <GameOverScreen
-          state={gameState}
-          onPlayAgain={handlePlayAgain}
-          onMenu={handleMenu}
-        />
+      {gameState.screen === 'game' && (
+        <AchievementToast toasts={gameState.achievementToasts} />
       )}
     </>
   )
