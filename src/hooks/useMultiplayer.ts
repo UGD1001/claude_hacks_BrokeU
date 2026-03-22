@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { GameState, MPMsg, RemotePlayer } from '../types'
 
-const RELAY_URL = 'ws://localhost:3001'
+const RELAY_URL = import.meta.env.PROD
+  ? 'wss://YOUR-RELAY-URL.up.railway.app'
+  : 'ws://localhost:3001'
 
 export function useMultiplayer(
   gameState: GameState,
