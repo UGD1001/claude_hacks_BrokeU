@@ -495,7 +495,6 @@ export function useGameLoop(
           timeToNextMonthlyUpdate: prev.timeToNextMonthlyUpdate,
         }
 
-        // Clean stale toasts
         const now = Date.now()
         s.achievementToasts = s.achievementToasts.filter(t => now - t.ts < 4000)
 
@@ -548,8 +547,7 @@ export function applyEventChoice(prev: GameState, choice: EventChoice): GameStat
 
   if (choice.sellIndexAmount !== undefined) {
     const sell = Math.min(choice.sellIndexAmount, s.indexValue)
-    s.indexValue -= sell
-    s.cash += sell
+    s.indexValue -= sell; s.cash += sell
   }
 
   if (choice.lend !== undefined) {
@@ -564,10 +562,10 @@ export function applyEventChoice(prev: GameState, choice: EventChoice): GameStat
     s.cash -= bet
     if (Math.random() < 0.30) {
       s.cash += bet * 10
-      s.achievementToasts = [...s.achievementToasts, { id: `gw-${Date.now()}`, text: `🎰 You WON! +$${fmt(bet * 10)}`, ts: Date.now() }]
+      s.achievementToasts = [...s.achievementToasts, { id:`gw-${Date.now()}`, text:`🎰 YOU WON! +$${Math.floor(bet*10).toLocaleString()}`, ts:Date.now() }]
     } else {
       s.cash += bet * 0.20
-      s.achievementToasts = [...s.achievementToasts, { id: `gl-${Date.now()}`, text: `💀 Lost $${fmt(bet * 0.80)} gambling`, ts: Date.now() }]
+      s.achievementToasts = [...s.achievementToasts, { id:`gl-${Date.now()}`, text:`💀 LOST $${Math.floor(bet*0.80).toLocaleString()} GAMBLING`, ts:Date.now() }]
     }
   }
 

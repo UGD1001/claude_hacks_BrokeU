@@ -64,23 +64,23 @@ export interface EventChoice {
 }
 
 export interface GameEvent {
-  id: string
-  icon: string
-  title: string
-  desc?: string
+  id:      string
+  icon:    string
+  title:   string
+  desc?:   string
   choices: EventChoice[]
 }
 
 export interface AchievementToastItem {
-  id: string
+  id:   string
   text: string
-  ts: number
+  ts:   number
 }
 
 export interface YearSnapshot {
-  year: number
+  year:     number
   playerNW: number
-  compNW: number
+  compNW:   number
 }
 
 // ── Computer AI state (house) ────────────────────────────────────────────────
@@ -103,7 +103,7 @@ export interface GameState {
   salary: number          // annual
   rent: number            // monthly apartment rent
   monthlyExpenses: number
-  tuitionDebt: number     // starting total
+  tuitionDebt:     number
 
   // ── Mode ─────────────────────────────────────────────────────────────────────
   gameMode: GameMode   // 'standard' = 20yr full sim | 'sprint' = first to car wins, 10 min max
@@ -194,12 +194,12 @@ export interface GameState {
   // ── Toasts & achievements ────────────────────────────────────────────────────
   achievementToasts: AchievementToastItem[]
   achievementsUnlocked: string[]
+  codexUnlocked: string[]
 
-  // ── End state ────────────────────────────────────────────────────────────────
   // ── Historical data era ───────────────────────────────────────────────────────
   gameStartDate: string  // e.g. "1999-01" — determines which real-world era is played
 
   // ── End state ────────────────────────────────────────────────────────────────
   gameOverReason: string
-  playerWon: boolean
+  playerWon:      boolean
 }

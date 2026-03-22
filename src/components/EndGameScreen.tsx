@@ -10,7 +10,7 @@ interface Props {
 function fmt(n: number) {
   const abs = Math.abs(n)
   const sign = n < 0 ? '−' : ''
-  if (abs >= 1_000_000) return sign + '$' + (abs / 1_000_000).toFixed(2) + 'M'
+  if (abs >= 1_000_000) return sign + '$' + (abs/1_000_000).toFixed(2) + 'M'
   return sign + '$' + Math.floor(abs).toLocaleString('en-US')
 }
 
@@ -77,34 +77,29 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
 
   const tips = generateTips(state, playerNW, compNW)
 
-  const snapshots5  = state.snapshots.find(s => s.year === 5)
-  const snapshots10 = state.snapshots.find(s => s.year === 10)
-  const snapshots15 = state.snapshots.find(s => s.year === 15)
-  const snapshots20 = state.snapshots.find(s => s.year >= 19)
+  const snaps = [5,10,15,20].map(yr => state.snapshots.find(s => s.year >= yr)).filter(Boolean)
 
   return (
-    <div className="endgame-screen" style={{ paddingTop: 72 }}>
-      <div className="endgame-glow" style={{ background: won && !bankrupt ? 'var(--green)' : 'var(--red)' }} />
-
+    <div className="endgame-screen">
       <div className="endgame-icon">{bankrupt ? '💀' : won ? '🏆' : '📊'}</div>
 
-      <div className="endgame-eyebrow" style={{ color: won && !bankrupt ? 'var(--green)' : 'var(--red)' }}>
-        · {bankrupt ? 'Game Over' : won ? 'Victory' : 'Year 20 Complete'} ·
+      <div className="endgame-eyebrow" style={{ color: bankrupt ? 'var(--burg)' : won ? 'var(--teal)' : 'var(--dsage)' }}>
+        · {bankrupt ? 'GAME OVER' : won ? 'VICTORY' : 'YEAR 20 COMPLETE'} ·
       </div>
 
-      <h2 className="endgame-title" style={{ color: won && !bankrupt ? 'var(--yellow)' : 'var(--sky)' }}>
-        {bankrupt ? 'BROKE OUT' : won ? 'YOU WIN!' : 'TIME\'S UP'}
+      <h2 className="endgame-title" style={{ color: bankrupt ? 'var(--burg)' : won ? 'var(--amber)' : 'var(--sage)' }}>
+        {bankrupt ? 'BROKE OUT' : won ? 'YOU WIN!' : "TIME'S UP"}
       </h2>
 
       {bankrupt && (
         <p className="endgame-subtitle">{state.gameOverReason}</p>
       )}
 
-      {/* Side-by-side comparison */}
+      {/* VS comparison */}
       <div className="endgame-vs">
         <div className="endgame-vs-col player">
-          <div className="endgame-vs-label">{state.playerName || 'You'}</div>
-          <div className="endgame-vs-nw" style={{ color: won ? 'var(--green)' : 'var(--red)' }}>{fmt(playerNW)}</div>
+          <div className="endgame-vs-label">{state.playerName || 'YOU'}</div>
+          <div className="endgame-vs-nw" style={{ color: won ? 'var(--teal)' : 'var(--burg)' }}>{fmt(playerNW)}</div>
           <div className="endgame-vs-detail">Cash: {fmt(state.cash)}</div>
           <div className="endgame-vs-detail">Investments: {fmt(totalInvested)}</div>
           {state.house && (
@@ -117,8 +112,8 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
         </div>
         <div className="endgame-vs-divider">VS</div>
         <div className="endgame-vs-col comp">
-          <div className="endgame-vs-label">Computer</div>
-          <div className="endgame-vs-nw" style={{ color: won ? 'var(--mid)' : 'var(--yellow)' }}>{fmt(compNW)}</div>
+          <div className="endgame-vs-label">COMPUTER</div>
+          <div className="endgame-vs-nw" style={{ color: won ? 'var(--slate)' : 'var(--amber)' }}>{fmt(compNW)}</div>
           <div className="endgame-vs-detail">Cash: {fmt(state.compCash)}</div>
           <div className="endgame-vs-detail">Index Fund: {fmt(state.compIndexValue)}</div>
           {state.compHouse && (
@@ -132,19 +127,14 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
       </div>
 
       {/* Net worth history */}
-      {state.snapshots.length > 0 && (
+      {snaps.length > 0 && (
         <div className="endgame-history">
-          <div className="endgame-history-title">NET WORTH OVER TIME</div>
+          <div className="endgame-history-title">// NET WORTH OVER TIME</div>
           <div className="endgame-history-grid">
-            {[
-              { label: 'Year 5',  snap: snapshots5  },
-              { label: 'Year 10', snap: snapshots10 },
-              { label: 'Year 15', snap: snapshots15 },
-              { label: 'Year 20', snap: snapshots20 },
-            ].map(({ label, snap }) => snap && (
-              <div key={label} className="endgame-hist-col">
-                <div className="endgame-hist-yr">{label}</div>
-                <div className="endgame-hist-you" style={{ color: snap.playerNW >= snap.compNW ? 'var(--green)' : 'var(--red)' }}>
+            {snaps.map((snap, i) => snap && (
+              <div key={i} className="endgame-hist-col">
+                <div className="endgame-hist-yr">YEAR {snap.year}</div>
+                <div className="endgame-hist-you" style={{ color: snap.playerNW >= snap.compNW ? 'var(--teal)' : 'var(--burg)' }}>
                   {fmt(snap.playerNW)}
                 </div>
                 <div className="endgame-hist-comp">{fmt(snap.compNW)}</div>
@@ -152,8 +142,8 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
             ))}
           </div>
           <div className="endgame-hist-legend">
-            <span style={{ color: 'var(--green)' }}>■ You</span>
-            <span style={{ color: 'var(--mid)' }}>■ Computer</span>
+            <span style={{ color:'var(--teal)' }}>■ YOU</span>
+            <span style={{ color:'var(--slate)' }}>■ COMPUTER</span>
           </div>
         </div>
       )}
@@ -161,7 +151,7 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
       {/* Education recap */}
       {tips.length > 0 && (
         <div className="endgame-recap">
-          <div className="endgame-recap-title">📖 EDUCATION RECAP</div>
+          <div className="endgame-recap-title">// EDUCATION RECAP</div>
           {tips.map((tip, i) => (
             <div key={i} className="endgame-tip">{tip}</div>
           ))}
@@ -222,6 +212,11 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
         )
       })()}
 
+      {/* Finance Codex */}
+      <div className="endgame-codex">
+        Finance Codex: <strong>{state.codexUnlocked.length}/24 entries</strong> unlocked this run
+      </div>
+
       {/* Financial Glossary */}
       <div className="endgame-glossary">
         <div className="endgame-glossary-title">📚 FINANCIAL GLOSSARY</div>
@@ -240,8 +235,8 @@ export default function EndGameScreen({ state, onPlayAgain, onMenu }: Props) {
       </div>
 
       <div className="outcome-actions">
-        <button className="outcome-btn primary" onClick={onPlayAgain}>🎮 Play Again</button>
-        <button className="outcome-btn secondary" onClick={onMenu}>← Main Menu</button>
+        <button className="outcome-btn primary" onClick={onPlayAgain}>▶ PLAY AGAIN</button>
+        <button className="outcome-btn secondary" onClick={onMenu}>◄ MAIN MENU</button>
       </div>
     </div>
   )

@@ -89,8 +89,6 @@ export const MARKET_PARAMS = {
   crypto:       { base: 0.20,  variance: 0.55  },
 }
 
-// ── Sparkline generation ───────────────────────────────────────────────────────
-
 function genSparkline(price: number, variance: number): number[] {
   const pts: number[] = []
   let p = price * (0.75 + Math.random() * 0.5)
@@ -471,6 +469,36 @@ export const GLOSSARY_ENTRIES = [
     definition: 'Every financial choice has a hidden cost: the value of the best alternative you didn\'t take.',
     formula: 'Opportunity Cost = Best foregone option\'s return',
   },
+]
+
+
+// ── Codex entries (financial education, unlocked by gameplay) ──────────────────
+
+export const CODEX_ENTRIES = [
+  { id:'compound_interest', title:'Compound Interest',   explanation:'Earning interest on your interest. The longer you invest, the more powerful it becomes.', gameTip:'Start investing in Year 1. Even $1,000 at 7% becomes $3,870 after 20 years.', defaultUnlocked:true  },
+  { id:'net_worth',         title:'Net Worth Formula',   explanation:'Cash + Investments + Assets − Debts. This is the real score.', gameTip:'Watch your net worth trend, not just your cash. Investments compound silently.', defaultUnlocked:true  },
+  { id:'emergency_fund',    title:'Emergency Fund',      explanation:'3–6 months of living expenses kept liquid for unexpected costs.', gameTip:'Keep $3k+ in cash. Without it, one event card can spiral into debt.', defaultUnlocked:true  },
+  { id:'budget',            title:'Budget: 50/30/20',    explanation:'50% needs, 30% wants, 20% savings. A practical starting framework.', gameTip:'Your monthly net flow tells you exactly how much you can invest each year.', defaultUnlocked:true  },
+  { id:'index_fund',        title:'Index Funds',         explanation:'Diversified funds tracking market indices. Low cost, historically 7–10%/year returns.', gameTip:'The computer opponent puts everything into index funds — and it works.', defaultUnlocked:false },
+  { id:'debt_interest',     title:'Debt Interest (APR)', explanation:'18% APR means your debt doubles every 4 years if unpaid.', gameTip:'Pay off high-interest debt before investing. The math always favors this.', defaultUnlocked:false },
+  { id:'diversification',   title:'Diversification',     explanation:'Spreading investments across asset classes to reduce risk.', gameTip:"Don't put everything in crypto. Index + real estate + some stocks is resilient.", defaultUnlocked:false },
+  { id:'dollar_cost_avg',   title:'Dollar-Cost Averaging', explanation:'Investing fixed amounts regularly regardless of market price.', gameTip:'Invest every year regardless of market events — it smooths out volatility.', defaultUnlocked:false },
+  { id:'liquidity',         title:'Liquidity',           explanation:'How quickly an asset can convert to cash. Stocks: instant. Real estate: months.', gameTip:'Keep liquid assets to handle emergencies without selling at a loss.', defaultUnlocked:false },
+  { id:'real_estate',       title:'Real Estate',         explanation:'Property generates rental income and appreciates over time. Less liquid than stocks.', gameTip:'Unlocks at year 7. Steady 6%/year with low variance — great long-term hold.', defaultUnlocked:false },
+  { id:'stock_market',      title:'Individual Stocks',   explanation:'Shares of specific companies. High variance — can soar or crash 30%+ in a year.', gameTip:'Diversify across multiple stocks. Single stock bets are lottery tickets.', defaultUnlocked:false },
+  { id:'crypto',            title:'Cryptocurrency',      explanation:'Digital assets with extreme volatility. High risk, high potential reward.', gameTip:'Only invest what you can afford to lose entirely. Crypto can go to zero.', defaultUnlocked:false },
+  { id:'inflation',         title:'Inflation',           explanation:'Your cash loses ~3–7% purchasing power per year. Invest to stay ahead.', gameTip:'Holding large cash balances long-term is a slow loss. Invest the surplus.', defaultUnlocked:false },
+  { id:'opportunity_cost',  title:'Opportunity Cost',    explanation:"Every choice has an implicit cost: the best alternative you didn't take.", gameTip:'Cash sitting idle could be compounding in an index fund.', defaultUnlocked:false },
+  { id:'risk_reward',       title:'Risk vs Reward',      explanation:'Higher returns always come with higher risk. There is no free lunch.', gameTip:'Match your risk to your time horizon. More years = can afford more risk.', defaultUnlocked:false },
+  { id:'passive_income',    title:'Passive Income',      explanation:'Income earned with minimal active work — dividends, rent, interest.', gameTip:'Side hustles and investments create income streams that compound.', defaultUnlocked:false },
+  { id:'debt_snowball',     title:'Debt Snowball',        explanation:'Pay smallest debts first for psychological momentum.', gameTip:'Mathematically, pay highest-interest debt first. Always pay loans before investing.', defaultUnlocked:false },
+  { id:'asset_allocation',  title:'Asset Allocation',    explanation:'The mix of stocks, bonds, real estate, and cash in your portfolio.', gameTip:'Younger players can take more risk. Adjust as you approach year 20.', defaultUnlocked:false },
+  { id:'market_timing',     title:'Market Timing',       explanation:'Trying to predict when to buy/sell. Almost always fails.', gameTip:'Time in the market beats timing the market. Stay invested.', defaultUnlocked:false },
+  { id:'salary_nego',       title:'Salary Negotiation',  explanation:'Your starting salary compounds through raises. Negotiating up front is powerful.', gameTip:'A $10k salary difference grows to $500k+ over a career.', defaultUnlocked:false },
+  { id:'lifestyle_creep',   title:'Lifestyle Creep',     explanation:'Spending more as you earn more, preventing wealth building.', gameTip:"When income rises, invest the difference. Don't upgrade your lifestyle.", defaultUnlocked:false },
+  { id:'side_hustle',       title:'Side Hustles',        explanation:'Extra income streams outside your main job. Scalable, often passive over time.', gameTip:'Content creator income grows 3x over 3 years. Start early.', defaultUnlocked:false },
+  { id:'car_depreciation',  title:'Depreciation',        explanation:'Cars lose 10–15% of value per year. They are expenses, not investments.', gameTip:'The computer only buys a car when it has to. Keep investing instead.', defaultUnlocked:false },
+  { id:'fin_literacy',      title:'Financial Literacy',  explanation:'Understanding money concepts is the foundation of building wealth.', gameTip:'You just played Broke U. You are already ahead of most people.', defaultUnlocked:false },
 ]
 
 // ── Net worth calculators ──────────────────────────────────────────────────────

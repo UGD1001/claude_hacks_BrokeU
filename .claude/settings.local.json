@@ -8,7 +8,12 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(where npm)",
       "Bash(where node)",
-      "Bash(wc -l /c/Users/adity/Documents/claude_hacks_BrokeU/src/*.tsx /c/Users/adity/Documents/claude_hacks_BrokeU/src/*.ts /c/Users/adity/Documents/claude_hacks_BrokeU/src/components/*.tsx /c/Users/adity/Documents/claude_hacks_BrokeU/src/hooks/*.ts /c/Users/adity/Documents/claude_hacks_BrokeU/src/*.css /c/Users/adity/Documents/claude_hacks_BrokeU/index.html)"
+      "Bash(wc -l /c/Users/adity/Documents/claude_hacks_BrokeU/src/*.tsx /c/Users/adity/Documents/claude_hacks_BrokeU/src/*.ts /c/Users/adity/Documents/claude_hacks_BrokeU/src/components/*.tsx /c/Users/adity/Documents/claude_hacks_BrokeU/src/hooks/*.ts /c/Users/adity/Documents/claude_hacks_BrokeU/src/*.css /c/Users/adity/Documents/claude_hacks_BrokeU/index.html)",
+      "Bash(node -e:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/adity/Documents/claude_hacks_BrokeU/**)",
+      "Bash(done)"
     ]
   }
 }
