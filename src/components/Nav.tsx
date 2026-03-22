@@ -44,11 +44,11 @@ export default function Nav({ state, onBack }: NavProps) {
         </>
       )}
 
-      {onBack && !isGame && (
+      {/* {onBack && !isGame && (
         <button className="btn-back" onClick={onBack} style={{ marginBottom:0, marginLeft:'auto', marginRight:10 }}>
           ◄ BACK
         </button>
-      )}
+      )} */}
 
       <div className="nav-status">
         <div className="nav-dot" />

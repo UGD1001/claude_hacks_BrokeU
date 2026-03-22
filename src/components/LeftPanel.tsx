@@ -5,6 +5,7 @@ import { calcNetWorth, calcCompNetWorth, getMonthlyFlow, SIDE_HUSTLES, CODEX_ENT
 interface Props {
   state: GameState
   onActivateHustle: (id: SideHustleId, cost: number) => void
+  onQuit: () => void
 }
 
 function fmt(n: number) {
@@ -14,7 +15,7 @@ function fmt(n: number) {
   return sign + '$' + Math.floor(abs).toLocaleString('en-US')
 }
 
-export default function LeftPanel({ state, onActivateHustle }: Props) {
+export default function LeftPanel({ state, onActivateHustle, onQuit }: Props) {
   const [showCodex, setShowCodex] = useState(false)
   const [codexId,   setCodexId]   = useState<string|null>(null)
 
@@ -189,6 +190,11 @@ export default function LeftPanel({ state, onActivateHustle }: Props) {
           </div>
         )}
       </div>
+
+      {/* Quit button */}
+      <button className="lp-quit-btn" onClick={onQuit}>
+        ◄ QUIT GAME
+      </button>
     </div>
   )
 }

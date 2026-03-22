@@ -5,6 +5,7 @@ import { useGameLoop, applyEventChoice } from './hooks/useGameLoop'
 import Nav          from './components/Nav'
 import MenuScreen   from './components/MenuScreen'
 import SetupScreen  from './components/SetupScreen'
+import TutorialOverlay from './components/TutorialOverlay'
 import GameScreen   from './components/GameScreen'
 import EndGameScreen from './components/EndGameScreen'
 import AchievementToast from './components/AchievementToast'
@@ -75,10 +76,26 @@ function makeBlankState(): GameState {
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>(makeBlankState())
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [pendingSetup, setPendingSetup] = useState<SetupConfig | null>(null)
   useGameLoop(gameState, setGameState)
 
   const handleNewGame    = useCallback(() => setGameState(prev => ({ ...prev, screen: 'setup' })), [])
-  const handleStartGame  = useCallback((setup: SetupConfig) => setGameState(makeInitialState(setup)), [])
+
+  // When setup completes, show tutorial first
+  const handleStartGame  = useCallback((setup: SetupConfig) => {
+    setPendingSetup(setup)
+    setShowTutorial(true)
+  }, [])
+
+  // When tutorial completes, actually start the game
+  const handleTutorialComplete = useCallback(() => {
+    if (pendingSetup) {
+      setGameState(makeInitialState(pendingSetup))
+      setPendingSetup(null)
+    }
+    setShowTutorial(false)
+  }, [pendingSetup])
   const handleEventChoice= useCallback((choice: EventChoice) => setGameState(prev => applyEventChoice(prev, choice)), [])
 
   const handleCarBuy = useCallback(() => {
@@ -160,9 +177,18 @@ export default function App() {
     })
   }, [])
 
-  const handlePlayAgain = useCallback(() => setGameState(prev => ({ ...prev, screen:'setup' })), [])
-  const handleMenu      = useCallback(() => setGameState(makeBlankState()), [])
+  const handlePlayAgain = useCallback(() => {
+    setShowTutorial(false)
+    setPendingSetup(null)
+    setGameState(prev => ({ ...prev, screen:'setup' }))
+  }, [])
+  const handleMenu      = useCallback(() => {
+    setShowTutorial(false)
+    setPendingSetup(null)
+    setGameState(makeBlankState())
+  }, [])
   const handleBack      = useCallback(() => setGameState(prev => ({ ...prev, screen:'menu' })), [])
+  const handleQuit      = useCallback(() => setGameState(prev => ({ ...prev, screen:'setup' })), [])
 
   return (
     <>
@@ -173,6 +199,9 @@ export default function App() {
       )}
       {gameState.screen === 'setup' && (
         <SetupScreen onStart={handleStartGame} onBack={handleBack} />
+      )}
+      {showTutorial && (
+        <TutorialOverlay onComplete={handleTutorialComplete} />
       )}
       {gameState.screen === 'game' && (
         <GameScreen
@@ -186,6 +215,7 @@ export default function App() {
           onBuyCrypto={handleBuyCrypto}
           onSellCrypto={handleSellCrypto}
           onActivateHustle={handleActivateHustle}
+          onQuit={handleQuit}
         />
       )}
       {gameState.screen === 'endgame' && (
