@@ -107,7 +107,7 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
           {[80,160,240,320,400,480,560,640,720,800,880].map(x=><line key={`fx${x}`} x1={x} y1="456" x2={x} y2="720"/>)}
         </g>
         {/* Pixel character */}
-        <g transform="translate(640,240)">
+        <g transform="translate(720,380)">
           <rect x="-24" y="104" width="48" height="6" fill="#3a2d3e"/>
           <rect x="-16" y="110" width="6" height="32" fill="#2e2438"/>
           <rect x="10"  y="110" width="6" height="32" fill="#2e2438"/>
