@@ -133,7 +133,7 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
       <div style={{ position:'absolute', inset:0, zIndex:1, backgroundImage:'repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(26,20,34,0.4) 3px,rgba(26,20,34,0.4) 4px)', pointerEvents:'none' }} />
 
       {/* MENU CONTENT */}
-      <div style={{ position:'relative', zIndex:2, padding:'64px 56px', maxWidth:520, display:'flex', flexDirection:'column' }}>
+      <div style={{ position:'relative', zIndex:2, padding:'64px 56px', maxWidth:5000, display:'flex', flexDirection:'column' }}>
         <div className="menu-eyebrow">// financial survival rpg · 20 year simulation</div>
         <h1 className="menu-title">
           {TITLE.slice(0, typedCount).map((t, i) =>

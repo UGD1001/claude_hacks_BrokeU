@@ -124,7 +124,7 @@ body {
 .nav-logo span { color: var(--sage); }
 
 .nav-year {
-  font-size: 6px;
+  font-size: 7px;
   letter-spacing: 0.12em;
   color: var(--teal);
   text-transform: uppercase;
@@ -386,7 +386,7 @@ body {
 .setup-field { margin-bottom: 24px; }
 
 .setup-label {
-  font-size: 9px;
+  font-size: 13px;
   letter-spacing: 0.18em;
   color: var(--teal);
   text-transform: uppercase;
@@ -443,7 +443,7 @@ body {
 .setup-slider-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 12px;
   color: var(--slate);
   margin-top: 6px;
 }
@@ -695,7 +695,7 @@ body {
 .lp-hustle.on { outline-color: var(--teal); background: rgba(99,120,125,0.1); color: var(--sage); }
 .lp-hustle-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-size: 12px;
   padding: 5px 10px;
   outline: 2px solid var(--amber);
   box-shadow: 1px 1px 0 var(--terra);
@@ -707,7 +707,7 @@ body {
 }
 .lp-hustle-btn:hover { transform: translate(1px,1px); box-shadow: 0 0 0 var(--terra); }
 .lp-hustle-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.lp-lock { font-style: italic; color: var(--slate); font-size: 8px; }
+.lp-lock { font-style: italic; color: var(--slate); font-size: 12px; }
 
 /* Leaderboard */
 .lp-lb { display: flex; flex-direction: column; gap: 5px; }
@@ -745,7 +745,7 @@ body {
 /* Quit button */
 .lp-quit-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-size: 13px;
   letter-spacing: 0.06em;
   padding: 12px 16px;
   background: rgba(139,64,73,0.15);
@@ -792,7 +792,7 @@ body {
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 7px;
-  font-size: 6px;
+  font-size: 12px;
   color: var(--dsage);
 }
 
@@ -818,7 +818,7 @@ body {
   position: relative;
 }
 .cp-goal-fill::after { content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.2)0,rgba(0,0,0,.2)2px,transparent 2px,transparent 4px); }
-.cp-hint { font-size: 5px; color: var(--slate); text-align: right; margin-top: 3px; }
+.cp-hint { font-size: 8px; color: var(--slate); text-align: right; margin-top: 3px; }
 
 /* Section headers */
 .cp-section { margin-bottom: 22px; }
@@ -829,7 +829,7 @@ body {
   margin-bottom: 10px;
 }
 .cp-section-hdr span {
-  font-size: 6px;
+  font-size: 10px;
   letter-spacing: 0.18em;
   color: var(--amber);
   text-transform: uppercase;
@@ -887,7 +887,7 @@ body {
 .inv-tile-icon { font-size: 16px; }
 
 .inv-ret-badge {
-  font-size: 5px;
+  font-size: 8px;
   letter-spacing: 0.06em;
   padding: 2px 5px;
   outline: 1px solid;
@@ -895,10 +895,10 @@ body {
 .inv-ret-badge.pos { background: rgba(99,120,125,0.2); color: var(--teal); outline-color: var(--teal); }
 .inv-ret-badge.neg { background: rgba(139,64,73,0.2); color: var(--burg); outline-color: var(--burg); }
 
-.inv-tile-name { font-size: 6px; color: var(--sage); margin-bottom: 4px; letter-spacing: 0.04em; }
+.inv-tile-name { font-size: 8px; color: var(--sage); margin-bottom: 4px; letter-spacing: 0.04em; }
 .inv-tile-val { font-family: 'Press Start 2P', monospace; font-size: 13px; color: var(--teal); text-shadow: 1px 1px 0 var(--plum); line-height: 1; }
 
-.inv-risk { font-size: 5px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+.inv-risk { font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
 .inv-risk.risk-safe { color: var(--teal); }
 .inv-risk.risk-medium { color: var(--amber); }
 .inv-risk.risk-extreme { color: var(--burg); }
@@ -908,12 +908,12 @@ body {
   padding-top: 8px;
   border-top: 2px solid var(--slate);
 }
-.inv-expand-cash { font-size: 6px; color: var(--dsage); margin-bottom: 5px; }
+.inv-expand-cash { font-size: 8px; color: var(--dsage); margin-bottom: 5px; }
 .inv-expand-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
 
 .inv-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   padding: 4px 7px;
   outline: 2px solid var(--teal);
   box-shadow: 1px 1px 0 var(--plum);
@@ -940,7 +940,7 @@ body {
   color: var(--teal);
 }
 
-.inv-expand-holding { font-size: 5px; color: var(--teal); margin-top: 3px; }
+.inv-expand-holding { font-size: 7px; color: var(--teal); margin-top: 3px; }
 
 /* ── INFO BUTTON ── */
 .info-btn {
@@ -1022,7 +1022,7 @@ body {
   outline: 2px solid var(--slate);
 }
 .info-modal-stat { flex: 1; text-align: center; }
-.info-modal-stat-label { font-size: 8px; color: var(--slate); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.info-modal-stat-label { font-size: 12px; color: var(--slate); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
 .info-modal-stat-val { font-family: 'Press Start 2P', monospace; font-size: 14px; text-shadow: 1px 1px 0 var(--plum); }
 
 .info-modal-close {
@@ -1063,20 +1063,20 @@ body {
 
 .st-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
 .st-ticker { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--amber); text-shadow: 1px 1px 0 var(--terra); letter-spacing: 0.04em; }
-.st-chg { font-size: 5px; letter-spacing: 0.05em; padding: 1px 4px; outline: 1px solid; }
+.st-chg { font-size: 8px; letter-spacing: 0.05em; padding: 1px 4px; outline: 1px solid; }
 .st-chg.pos { color: var(--teal); background: rgba(99,120,125,0.15); outline-color: var(--teal); }
 .st-chg.neg { color: var(--burg); background: rgba(139,64,73,0.15); outline-color: var(--burg); }
 
-.st-company { font-size: 5px; color: var(--slate); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-company { font-size: 8px; color: var(--slate); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-spark { margin-bottom: 4px; }
-.st-price { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--dsage); text-shadow: 1px 1px 0 var(--plum); }
-.st-held { font-size: 5px; color: var(--teal); margin-top: 3px; }
+.st-price { font-family: 'Press Start 2P', monospace; font-size: 13px; color: var(--dsage); text-shadow: 1px 1px 0 var(--plum); }
+.st-held { font-size: 7px; color: var(--teal); margin-top: 3px; }
 
 .st-expand { margin-top: 7px; padding-top: 7px; border-top: 2px solid var(--slate); }
 .st-qty-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
 .st-qty-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-size: 12px;
   width: 22px; height: 22px;
   outline: 2px solid var(--slate);
   box-shadow: 1px 1px 0 var(--plum);
@@ -1092,13 +1092,13 @@ body {
 }
 .st-qty-btn:hover { transform: translate(1px,1px); box-shadow: 0 0; }
 .st-qty-val { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--sage); min-width: 32px; text-align: center; text-shadow: 1px 1px 0 var(--plum); }
-.st-cost { font-size: 5px; color: var(--dsage); margin-bottom: 5px; }
+.st-cost { font-size: 7px; color: var(--dsage); margin-bottom: 5px; }
 .st-expand-btns { display: flex; gap: 5px; margin-bottom: 5px; }
 
 .st-btn {
   flex: 1;
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   padding: 5px;
   outline: 2px solid;
   box-shadow: 1px 1px 0 var(--plum);
@@ -1114,7 +1114,7 @@ body {
 .st-btn-done {
   width: 100%;
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   padding: 4px;
   outline: 1px solid var(--slate);
   background: transparent;
@@ -1151,16 +1151,16 @@ body {
   box-shadow: 2px 2px 0 var(--plum);
   text-align: center;
 }
-.car-cmp-label { font-size: 5px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; }
+.car-cmp-label { font-size: 8px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; }
 .car-cmp-nw { font-family: 'Press Start 2P', monospace; font-size: 14px; text-shadow: 2px 2px 0 var(--plum); }
 
-.car-modal-note { font-size: 6px; color: var(--slate); text-align: center; margin-bottom: 18px; line-height: 2; }
+.car-modal-note { font-size: 7px; color: var(--slate); text-align: center; margin-bottom: 18px; line-height: 2; }
 
 .car-modal-btns { display: flex; gap: 8px; }
 .car-btn-buy {
   flex: 1;
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
+  font-size: 8px;
   padding: 11px;
   background: var(--amber);
   color: var(--bg3);
@@ -1176,7 +1176,7 @@ body {
 .car-btn-skip {
   flex: 1;
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
+  font-size: 8px;
   padding: 11px;
   background: var(--panel);
   color: var(--dsage);
@@ -1212,8 +1212,8 @@ body {
 
 .event-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
 .event-icon { font-size: 28px; flex-shrink: 0; }
-.event-title { font-size: 8px; color: var(--sage); line-height: 1.8; flex: 1; text-transform: uppercase; }
-.event-desc { font-size: 6px; color: var(--dsage); line-height: 2; margin-bottom: 16px; font-family: 'IBM Plex Mono', monospace; }
+.event-title { font-size: 12px; color: var(--sage); line-height: 1.8; flex: 1; text-transform: uppercase; }
+.event-desc { font-size: 9px; color: var(--dsage); line-height: 2; margin-bottom: 16px; font-family: 'IBM Plex Mono', monospace; }
 .event-timer-label { font-size: 6px; color: var(--burg); text-transform: uppercase; letter-spacing: 0.1em; text-align: right; margin-bottom: 4px; }
 
 .event-countdown-track { height: 4px; background: var(--slate); box-shadow: 1px 1px 0 var(--plum); margin-bottom: 14px; overflow: hidden; }
@@ -1238,8 +1238,8 @@ body {
 .choice-btn.good:hover { outline-color: var(--teal); }
 .choice-btn.bad:hover { outline-color: var(--burg); }
 .choice-key { font-family: 'Press Start 2P', monospace; font-size: 12px; color: var(--amber); text-shadow: 1px 1px 0 var(--terra); flex-shrink: 0; min-width: 16px; }
-.choice-label { font-size: 6px; color: var(--sage); flex: 1; line-height: 1.8; }
-.choice-outcome { font-size: 5px; color: var(--dsage); margin-top: 3px; line-height: 1.6; }
+.choice-label { font-size: 7px; color: var(--sage); flex: 1; line-height: 1.8; }
+.choice-outcome { font-size: 6px; color: var(--dsage); margin-top: 3px; line-height: 1.6; }
 
 /* ── TOASTS ── */
 .toast-container-bills {
@@ -1308,9 +1308,9 @@ body {
 .endgame-icon { font-size: 64px; margin-bottom: 16px; animation: bounceIn 0.4s ease; z-index: 1; }
 @keyframes bounceIn { 0%{transform:scale(0.3);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1} }
 
-.endgame-eyebrow { font-size: 7px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 10px; z-index: 1; }
+.endgame-eyebrow { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 10px; z-index: 1; }
 .endgame-title { font-family: 'Press Start 2P', monospace; font-size: clamp(24px,4vw,52px); letter-spacing: 0.04em; text-shadow: 4px 4px 0 var(--plum); margin-bottom: 12px; z-index: 1; }
-.endgame-subtitle { font-size: 7px; color: var(--dsage); margin-bottom: 32px; max-width: 480px; line-height: 2; z-index: 1; }
+.endgame-subtitle { font-size: 9px; color: var(--dsage); margin-bottom: 32px; max-width: 480px; line-height: 2; z-index: 1; }
 
 .endgame-vs {
   display: flex;
@@ -1326,10 +1326,10 @@ body {
 .endgame-vs-col { flex: 1; padding: 18px 20px; }
 .endgame-vs-col.player { background: rgba(99,120,125,0.08); border-right: 2px solid var(--slate); }
 .endgame-vs-col.comp { background: rgba(81,82,98,0.08); }
-.endgame-vs-divider { display: flex; align-items: center; justify-content: center; padding: 0 12px; font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--slate); border-left: 2px solid var(--slate); border-right: 2px solid var(--slate); }
-.endgame-vs-label { font-size: 5px; letter-spacing: 0.18em; color: var(--teal); text-transform: uppercase; margin-bottom: 6px; }
-.endgame-vs-nw { font-family: 'Press Start 2P', monospace; font-size: 20px; letter-spacing: 0.02em; text-shadow: 2px 2px 0 var(--plum); margin-bottom: 10px; }
-.endgame-vs-detail { font-size: 6px; color: var(--slate); text-align: left; padding: 2px 0; line-height: 1.8; }
+.endgame-vs-divider { display: flex; align-items: center; justify-content: center; padding: 0 12px; font-family: 'Press Start 2P', monospace; font-size: 12px; color: var(--slate); border-left: 2px solid var(--slate); border-right: 2px solid var(--slate); }
+.endgame-vs-label { font-size: 7px; letter-spacing: 0.18em; color: var(--teal); text-transform: uppercase; margin-bottom: 6px; }
+.endgame-vs-nw { font-family: 'Press Start 2P', monospace; font-size: 22px; letter-spacing: 0.02em; text-shadow: 2px 2px 0 var(--plum); margin-bottom: 10px; }
+.endgame-vs-detail { font-size: 8px; color: var(--slate); text-align: left; padding: 2px 0; line-height: 1.8; }
 
 .endgame-history {
   width: 100%;
@@ -1341,13 +1341,13 @@ body {
   margin-bottom: 20px;
   z-index: 1;
 }
-.endgame-history-title { font-size: 6px; letter-spacing: 0.2em; color: var(--teal); text-transform: uppercase; margin-bottom: 14px; }
+.endgame-history-title { font-size: 8px; letter-spacing: 0.2em; color: var(--teal); text-transform: uppercase; margin-bottom: 14px; }
 .endgame-history-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .endgame-hist-col { text-align: center; }
-.endgame-hist-yr { font-size: 5px; letter-spacing: 0.12em; color: var(--slate); text-transform: uppercase; margin-bottom: 5px; }
-.endgame-hist-you { font-family: 'Press Start 2P', monospace; font-size: 10px; text-shadow: 1px 1px 0 var(--plum); margin-bottom: 3px; }
-.endgame-hist-comp { font-size: 6px; color: var(--slate); }
-.endgame-hist-legend { display: flex; gap: 14px; justify-content: center; margin-top: 10px; font-size: 6px; letter-spacing: 0.08em; }
+.endgame-hist-yr { font-size: 7px; letter-spacing: 0.12em; color: var(--slate); text-transform: uppercase; margin-bottom: 5px; }
+.endgame-hist-you { font-family: 'Press Start 2P', monospace; font-size: 12px; text-shadow: 1px 1px 0 var(--plum); margin-bottom: 3px; }
+.endgame-hist-comp { font-size: 8px; color: var(--slate); }
+.endgame-hist-legend { display: flex; gap: 14px; justify-content: center; margin-top: 10px; font-size: 8px; letter-spacing: 0.08em; }
 
 .endgame-recap {
   width: 100%;
@@ -1360,11 +1360,11 @@ body {
   text-align: left;
   z-index: 1;
 }
-.endgame-recap-title { font-size: 6px; letter-spacing: 0.2em; color: var(--amber); text-transform: uppercase; margin-bottom: 12px; }
-.endgame-tip { font-size: 6px; color: var(--dsage); padding: 7px 0; border-bottom: 2px solid var(--slate); line-height: 2; font-family: 'IBM Plex Mono', monospace; }
+.endgame-recap-title { font-size: 8px; letter-spacing: 0.2em; color: var(--amber); text-transform: uppercase; margin-bottom: 12px; }
+.endgame-tip { font-size: 10px; color: var(--dsage); padding: 7px 0; border-bottom: 2px solid var(--slate); line-height: 2; font-family: 'IBM Plex Mono', monospace; }
 .endgame-tip:last-child { border-bottom: none; }
 
-.endgame-codex { font-size: 6px; color: var(--slate); margin-bottom: 22px; z-index: 1; line-height: 2; }
+.endgame-codex { font-size: 8px; color: var(--slate); margin-bottom: 22px; z-index: 1; line-height: 2; }
 .endgame-codex strong { color: var(--sage); }
 
 /* outcome / action buttons */
@@ -1437,7 +1437,7 @@ body {
   top: 12px;
   right: 12px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--slate);
   background: transparent;
@@ -1473,7 +1473,7 @@ body {
   margin-bottom: 12px;
 }
 .tut-year-label {
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 0.14em;
   color: var(--teal);
   text-transform: uppercase;
@@ -1485,7 +1485,7 @@ body {
   text-shadow: 2px 2px 0 var(--terra);
 }
 .tut-year-of {
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--dsage);
 }
@@ -1514,7 +1514,7 @@ body {
 }
 .tut-cash-label {
   display: block;
-  font-size: 7px;
+  font-size: 9px;
   letter-spacing: 0.14em;
   color: var(--teal);
   text-transform: uppercase;
@@ -1539,12 +1539,12 @@ body {
 }
 .tut-flow-row.pos span:last-child {
   font-family: 'VT323', monospace;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--teal);
 }
 .tut-flow-row.neg span:last-child {
   font-family: 'VT323', monospace;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--burg);
 }
 .tut-flow-row.pos span:first-child,
@@ -1584,7 +1584,7 @@ body {
   font-size: 28px;
 }
 .tut-icon-label {
-  font-size: 6px;
+  font-size: 8px;
   letter-spacing: 0.1em;
   color: var(--dsage);
   text-transform: uppercase;
@@ -1604,7 +1604,7 @@ body {
   font-size: 22px;
 }
 .tut-event-title {
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--sage);
 }
@@ -1641,7 +1641,7 @@ body {
 
 /* Typewriter text */
 .tutorial-text {
-  font-size: 9px;
+  font-size: 13px;
   color: var(--dsage);
   line-height: 2;
   text-align: center;
