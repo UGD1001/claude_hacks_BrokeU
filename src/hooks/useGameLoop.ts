@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { GameState, StockId, CryptoId, EventChoice } from '../types'
+import { createSeededRng } from '../lib/seededRng'
 import {
   TOTAL_YEARS, YEAR_SEC, CAR_GOAL,
   STOCK_IDS, CRYPTO_IDS,
@@ -15,15 +16,15 @@ const PRICE_UPDATE_INTERVAL = 8
 
 type MarketEvent = 'normal' | 'crash' | 'boom' | 'cryptosurge'
 
-function rolledReturn(base: number, variance: number, event: MarketEvent): number {
-  let r = base + (Math.random() * 2 - 1) * variance
-  if (event === 'crash') r = Math.min(r, -0.18 + Math.random() * 0.05)
-  if (event === 'boom')  r = Math.max(r,  0.14 + Math.random() * 0.06)
+function rolledReturn(base: number, variance: number, event: MarketEvent, rng: () => number): number {
+  let r = base + (rng() * 2 - 1) * variance
+  if (event === 'crash') r = Math.min(r, -0.18 + rng() * 0.05)
+  if (event === 'boom')  r = Math.max(r,  0.14 + rng() * 0.06)
   return r
 }
 
-function rollMarketEvent(year: number): MarketEvent {
-  const roll = Math.random()
+function rollMarketEvent(year: number, rng: () => number): MarketEvent {
+  const roll = rng()
   if (roll < 0.05) return 'crash'
   if (roll < 0.10) return 'boom'
   if (year >= 10 && roll < 0.15) return 'cryptosurge'
@@ -60,7 +61,9 @@ function applyMicroPriceUpdate(prev: GameState): GameState {
   return s
 }
 
-function pickEvent(year: number, s: GameState) {
+// ── Event picker ──────────────────────────────────────────────────────────────
+
+function pickEvent(year: number, s: GameState, rng: () => number) {
   const hasInvestments = s.indexValue + s.bankValue + s.realEstateValue > 500
   const pool = LIFE_EVENTS.filter(e => {
     if (e.id === 'crypto_unlock' || e.id === 'crypto_surge') return false
@@ -71,10 +74,19 @@ function pickEvent(year: number, s: GameState) {
     return true
   })
   if (pool.length === 0) return LIFE_EVENTS.find(e => e.id === 'tax_refund')!
-  return pool[Math.floor(Math.random() * pool.length)]
+  return pool[Math.floor(rng() * pool.length)]
 }
 
-function applyYearTick(prev: GameState): GameState {
+// Per-year seeded RNG: same session seed + year = identical market for all multiplayer windows
+function makeYearRng(mpSessionSeed: number, year: number): () => number {
+  if (mpSessionSeed === 0) return Math.random
+  // XOR session seed with year-based value for a unique seed per year
+  return createSeededRng((mpSessionSeed ^ (year * 0x9e3779b9)) >>> 0)
+}
+
+// ── Year tick ─────────────────────────────────────────────────────────────────
+
+function applyYearTick(prev: GameState, rng: () => number = Math.random): GameState {
   const s: GameState = {
     ...prev,
     stockHeld:         { ...prev.stockHeld },
@@ -92,28 +104,31 @@ function applyYearTick(prev: GameState): GameState {
   }
 
   const year = s.year
-  const marketEvent = rollMarketEvent(year)
+  const marketEvent = rollMarketEvent(year, rng)
 
   // 1. Investment returns
   if (s.bankValue > 0)
-    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base, MARKET_PARAMS.bank.variance, 'normal')
+    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base, MARKET_PARAMS.bank.variance, 'normal', rng)
+
   if (s.indexValue > 0)
-    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base, MARKET_PARAMS.index.variance, marketEvent)
+    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base, MARKET_PARAMS.index.variance, marketEvent, rng)
+
   if (s.realEstateValue > 0)
-    s.realEstateValue *= 1 + rolledReturn(MARKET_PARAMS.realEstate.base, MARKET_PARAMS.realEstate.variance, marketEvent === 'crash' ? 'crash' : 'normal')
+    s.realEstateValue *= 1 + rolledReturn(MARKET_PARAMS.realEstate.base, MARKET_PARAMS.realEstate.variance, marketEvent === 'crash' ? 'crash' : 'normal', rng)
+
   if (year >= 10 && s.cryptoPoolValue > 0)
-    s.cryptoPoolValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoPool.base, MARKET_PARAMS.cryptoPool.variance, marketEvent === 'cryptosurge' ? 'boom' : marketEvent)
+    s.cryptoPoolValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoPool.base, MARKET_PARAMS.cryptoPool.variance, marketEvent === 'cryptosurge' ? 'boom' : marketEvent, rng)
 
   // 2. Stock prices
   for (const id of STOCK_IDS) {
-    const ret = rolledReturn(MARKET_PARAMS.stocks.base, MARKET_PARAMS.stocks.variance, marketEvent === 'cryptosurge' ? 'normal' : marketEvent)
+    const ret = rolledReturn(MARKET_PARAMS.stocks.base, MARKET_PARAMS.stocks.variance, marketEvent === 'cryptosurge' ? 'normal' : marketEvent, rng)
     s.stockPrices[id] = Math.max(1, s.stockPrices[id] * (1 + ret))
     s.stockSparklines = { ...s.stockSparklines, [id]: [...s.stockSparklines[id].slice(1), s.stockPrices[id]] }
   }
 
   // 3. Crypto prices
   for (const id of CRYPTO_IDS) {
-    const ret = rolledReturn(MARKET_PARAMS.crypto.base, MARKET_PARAMS.crypto.variance, marketEvent === 'cryptosurge' ? 'boom' : marketEvent)
+    const ret = rolledReturn(MARKET_PARAMS.crypto.base, MARKET_PARAMS.crypto.variance, marketEvent === 'cryptosurge' ? 'boom' : marketEvent, rng)
     s.cryptoPrices[id] = Math.max(0.001, s.cryptoPrices[id] * (1 + ret))
     s.cryptoSparklines = { ...s.cryptoSparklines, [id]: [...s.cryptoSparklines[id].slice(1), s.cryptoPrices[id]] }
   }
@@ -149,8 +164,14 @@ function applyYearTick(prev: GameState): GameState {
   const compSurplus    = COMP_SALARY - COMP_RENT * 12 - COMP_EXPENSES * 12 - compTuitionPmt
   s.compTuitionRemaining = Math.max(0, s.compTuitionRemaining - compTuitionPmt)
   s.compCash += compSurplus
-  s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base, MARKET_PARAMS.index.variance, marketEvent)
-  if (s.compCash > 2000) { s.compIndexValue += s.compCash - 2000; s.compCash = 2000 }
+
+  s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base, MARKET_PARAMS.index.variance, marketEvent, rng)
+
+  if (s.compCash > 2000) {
+    s.compIndexValue += s.compCash - 2000
+    s.compCash = 2000
+  }
+
   if (s.compCarOwned) s.compCarValue *= 0.9
   if (!s.compCarOwned && calcCompNetWorth(s) >= CAR_GOAL) {
     if (s.compCash >= CAR_GOAL) {
@@ -205,9 +226,9 @@ function applyYearTick(prev: GameState): GameState {
 
   // 13. Life event firing
   if (year >= s.nextEventYear && !s.activeEvent) {
-    s.activeEvent   = pickEvent(year, s)
-    s.isPaused      = true
-    s.nextEventYear = year + 2 + Math.floor(Math.random() * 2)
+    s.activeEvent = pickEvent(year, s, rng)
+    s.isPaused = true
+    s.nextEventYear = year + 2 + Math.floor(rng() * 2)
   }
   if (year === 9 && !s.achievementsUnlocked.includes('crypto_unlocked')) {
     s.achievementsUnlocked = [...s.achievementsUnlocked, 'crypto_unlocked']
@@ -258,7 +279,8 @@ export function useGameLoop(
         }
 
         if (!s.isPaused && s.timeToNextYear <= 0) {
-          s = applyYearTick(s)
+          const rng = makeYearRng(s.mpSessionSeed, s.year)
+          s = applyYearTick(s, rng)
           if (s.screen === 'game') s.timeToNextYear = YEAR_SEC
         }
 

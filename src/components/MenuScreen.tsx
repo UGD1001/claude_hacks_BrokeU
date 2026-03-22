@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface MenuScreenProps {
   onNewGame: () => void
+  onHostGame: () => void
+  onJoinGame: () => void
+  sessionCount: number
+  relayConnected: boolean
 }
 
 const TITLE = [
@@ -14,9 +18,11 @@ const TITLE = [
   { char: 'U', cls: 'y' },
 ]
 
-export default function MenuScreen({ onNewGame }: MenuScreenProps) {
+export default function MenuScreen({ onNewGame, onHostGame, onJoinGame, sessionCount, relayConnected }: MenuScreenProps) {
   const [cursorVisible, setCursorVisible] = useState(true)
   const [typedCount, setTypedCount] = useState(0)
+  const [showMpHelp, setShowMpHelp] = useState(false)
+  const mpHelpRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const t = setInterval(() => setCursorVisible(v => !v), 530)
@@ -146,19 +152,84 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
         </p>
 
         <div className="menu-feature-list">
-          <div className="menu-feature"><span className="menu-feature-icon">→</span>20-year sim · 1 real min = 1 year</div>
-          <div className="menu-feature"><span className="menu-feature-icon">$</span>Stocks, index funds, real estate, crypto</div>
-          <div className="menu-feature"><span className="menu-feature-icon">×</span>Race against a computer opponent</div>
-          <div className="menu-feature"><span className="menu-feature-icon">!</span>15 life events that test every decision</div>
-          <div className="menu-feature"><span className="menu-feature-icon">?</span>Finance Codex — 24 entries to unlock</div>
+          <div className="menu-feature"><span className="menu-feature-icon">→</span> 20-year simulation · 1 real minute = 1 year</div>
+          <div className="menu-feature"><span className="menu-feature-icon">$</span> Stocks, index funds, real estate, crypto</div>
+          <div className="menu-feature"><span className="menu-feature-icon">×</span> Race against a computer opponent</div>
+          <div className="menu-feature"><span className="menu-feature-icon">!</span> 15 life events that test your decisions</div>
+          <div className="menu-feature"><span className="menu-feature-icon">⚡</span> Up to 5 players on the same machine</div>
+          <div className="menu-feature"><span className="menu-feature-icon">?</span> Finance Codex — 24 entries to unlock</div>
         </div>
 
         <div className="menu-buttons">
           <button className="menu-btn primary" onClick={onNewGame}>
             <span className="menu-btn-prompt">&gt;_</span>
-            START SURVIVING
-            <span className="menu-btn-cursor" style={{ opacity: cursorVisible ? 1 : 0 }}>█</span>
+            Solo Game
+            <span className="menu-btn-cursor" style={{ opacity: cursorVisible ? 1 : 0 }}>▮</span>
           </button>
+
+          <div className="menu-mp-row">
+            <button className="menu-btn secondary menu-btn-mp" onClick={onHostGame}>
+              <span className="menu-btn-prompt">⚡</span>
+              Host Lobby
+            </button>
+            <button
+              className={`menu-btn secondary menu-btn-mp ${sessionCount > 0 ? 'mp-found' : ''}`}
+              onClick={onJoinGame}
+            >
+              <span className="menu-btn-prompt">→</span>
+              Join Game{sessionCount > 0 ? ` (${sessionCount})` : ''}
+            </button>
+          </div>
+
+          <div className="menu-mp-status">
+            <span style={{ color: relayConnected ? 'var(--green)' : 'var(--red)' }}>
+              {relayConnected ? '● relay connected' : '● relay offline — run: node relay.js'}
+            </span>
+            {relayConnected && (
+              <span style={{ color: sessionCount > 0 ? 'var(--green)' : 'var(--mid)', marginLeft: 12 }}>
+                {sessionCount > 0 ? `● ${sessionCount} lobby${sessionCount !== 1 ? 'ies' : ''} open` : '○ no lobbies yet'}
+              </span>
+            )}
+          </div>
+
+          <button
+            className="menu-mp-help-toggle"
+            onClick={() => setShowMpHelp(v => !v)}
+          >
+            {showMpHelp ? '▲' : '▼'} How does multiplayer work?
+          </button>
+
+          <div
+            ref={mpHelpRef}
+            className="menu-mp-help"
+            style={{ maxHeight: showMpHelp ? mpHelpRef.current?.scrollHeight + 'px' : '0px' }}
+          >
+            <div className="menu-mp-help-inner">
+              <div className="menu-mp-help-step">
+                <span className="menu-mp-help-num">1</span>
+                <span>Everyone opens the game in their own browser window on the <em>same computer</em>.</span>
+              </div>
+              <div className="menu-mp-help-step">
+                <span className="menu-mp-help-num">2</span>
+                <span>Start the relay server first — open a terminal and run <code>npm run relay</code>.</span>
+              </div>
+              <div className="menu-mp-help-step">
+                <span className="menu-mp-help-num">3</span>
+                <span>One player clicks <strong>Host Lobby</strong>, fills out setup, and lands in the lobby. Share the 6-character session code shown there.</span>
+              </div>
+              <div className="menu-mp-help-step">
+                <span className="menu-mp-help-num">4</span>
+                <span>Other players click <strong>Join Game</strong>, enter their name and the session code, then fill out their own setup.</span>
+              </div>
+              <div className="menu-mp-help-step">
+                <span className="menu-mp-help-num">5</span>
+                <span>Once everyone is in the lobby, the host clicks <strong>Start Game</strong>. All windows start simultaneously with the same market seed.</span>
+              </div>
+              <div className="menu-mp-help-note">
+                ⚠ The relay server must keep running for the whole session. Each player plays independently — the leaderboard updates live across windows.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
