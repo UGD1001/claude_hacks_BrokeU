@@ -1,4 +1,6 @@
 export type Screen = 'menu' | 'setup' | 'game' | 'endgame'
+export type GameMode = 'standard' | 'sprint'
+export type MarketCondition = 'bull' | 'bear' | 'neutral'
 
 // Anonymised tickers
 export type StockId   = 'TGNX' | 'EVMX' | 'CLDX' | 'RTLX' | 'AICX' | 'DSRX'
@@ -103,6 +105,9 @@ export interface GameState {
   monthlyExpenses: number
   tuitionDebt: number     // starting total
 
+  // ── Mode ─────────────────────────────────────────────────────────────────────
+  gameMode: GameMode   // 'standard' = 20yr full sim | 'sprint' = first to car wins, 10 min max
+
   // ── Timing ──────────────────────────────────────────────────────────────────
   // Game runs on half-year ticks: 1 half-year = 30 real seconds
   // 1 full year = 2 half-year ticks = 60 real seconds → 20 years = 20 min
@@ -111,6 +116,10 @@ export interface GameState {
   timeToNextHalfYear: number      // real seconds until next half-year tick
   timeToNextMonthlyUpdate: number // seconds until monthly stock price update (5s)
   isPaused: boolean
+
+  // ── Market conditions ────────────────────────────────────────────────────────
+  marketCondition: MarketCondition          // bull / bear / neutral
+  marketConditionYearsLeft: number          // years remaining in current condition
 
   // ── Cash ────────────────────────────────────────────────────────────────────
   cash: number

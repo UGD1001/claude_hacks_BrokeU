@@ -1,11 +1,14 @@
 import { useState } from 'react'
 
+import type { GameMode } from '../types'
+
 interface SetupConfig {
   name: string
   salary: number
   rent: number
   expenses: number
   tuitionDebt: number
+  gameMode: GameMode
 }
 
 interface Props {
@@ -35,6 +38,7 @@ export default function SetupScreen({ onStart, onBack }: Props) {
   const [rent, setRent] = useState(1200)
   const [expenses, setExpenses] = useState(800)
   const [tuition, setTuition] = useState(0)
+  const [gameMode, setGameMode] = useState<GameMode>('standard')
 
   const annualNet = salary - rent * 12 - expenses * 12 - Math.min(tuition, 1000)
   const monthlyNet = annualNet / 12
@@ -54,6 +58,24 @@ export default function SetupScreen({ onStart, onBack }: Props) {
       <div className="setup-left">
         <div className="setup-eyebrow">· Configure your financial profile ·</div>
         <h2 className="setup-title">PLAYER SETUP</h2>
+
+        {/* Mode toggle */}
+        <div className="setup-mode-toggle">
+          <button
+            className={`mode-btn ${gameMode === 'standard' ? 'active' : ''}`}
+            onClick={() => setGameMode('standard')}
+          >
+            STANDARD
+            <span className="mode-sub">20 years · full simulation</span>
+          </button>
+          <button
+            className={`mode-btn sprint ${gameMode === 'sprint' ? 'active' : ''}`}
+            onClick={() => setGameMode('sprint')}
+          >
+            ⚡ SPRINT
+            <span className="mode-sub">first to car wins · 10 min max</span>
+          </button>
+        </div>
 
         <div className="setup-field">
           <label className="setup-label">YOUR NAME</label>
@@ -136,7 +158,7 @@ export default function SetupScreen({ onStart, onBack }: Props) {
         </div>
 
         <div className="setup-actions">
-          <button className="setup-btn-start" onClick={() => onStart({ name, salary, rent, expenses, tuitionDebt: tuition })}>
+          <button className="setup-btn-start" onClick={() => onStart({ name, salary, rent, expenses, tuitionDebt: tuition, gameMode })}>
             START SURVIVING →
           </button>
           <button className="setup-btn-back" onClick={onBack}>← Back</button>

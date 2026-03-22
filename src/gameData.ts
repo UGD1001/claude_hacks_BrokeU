@@ -6,6 +6,13 @@ export const HALF_YEAR_SEC    = 30   // real seconds per half-year tick
 export const MONTHLY_SEC      = 5    // real seconds between stock price updates
 export const CAR_GOAL         = 25000
 
+// Sprint mode
+export const SPRINT_HALF_YEARS = 20   // max 10 real minutes (20 half-years = 10 years simulated)
+
+// Backend: annual growth applied each full year
+export const ANNUAL_SALARY_GROWTH      = 0.02   // 2% salary increase per year
+export const ANNUAL_EXPENSE_INFLATION  = 0.015  // 1.5% expense inflation per year
+
 // Ticker arrays (anonymised)
 export const STOCK_IDS:  StockId[]  = ['TGNX', 'EVMX', 'CLDX', 'RTLX', 'AICX', 'DSRX']
 export const CRYPTO_IDS: CryptoId[] = ['BTGD', 'SMTC', 'FSTC', 'MMTK']

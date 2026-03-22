@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm } from './types'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, GameMode } from './types'
 import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, COMP_TUITION, HALF_YEAR_SEC } from './gameData'
 import { useGameLoop, applyEventChoice, applyHousePurchase, applyHouseMoveIn, applyHouseRentOut } from './hooks/useGameLoop'
 import Nav from './components/Nav'
@@ -15,6 +15,7 @@ interface SetupConfig {
   rent: number
   expenses: number
   tuitionDebt: number
+  gameMode: GameMode
 }
 
 function makeInitialState(setup: SetupConfig): GameState {
@@ -33,11 +34,16 @@ function makeInitialState(setup: SetupConfig): GameState {
     monthlyExpenses: setup.expenses,
     tuitionDebt: setup.tuitionDebt,
 
+    gameMode: setup.gameMode,
+
     year: 1,
     halfYearsElapsed: 0,
     timeToNextHalfYear: HALF_YEAR_SEC,
     timeToNextMonthlyUpdate: 5,
     isPaused: false,
+
+    marketCondition: 'neutral',
+    marketConditionYearsLeft: 0,
 
     cash: 500,
 
@@ -110,11 +116,16 @@ export default function App() {
     monthlyExpenses: 800,
     tuitionDebt: 0,
 
+    gameMode: 'standard',
+
     year: 1,
     halfYearsElapsed: 0,
     timeToNextHalfYear: HALF_YEAR_SEC,
     timeToNextMonthlyUpdate: 5,
     isPaused: false,
+
+    marketCondition: 'neutral',
+    marketConditionYearsLeft: 0,
 
     cash: 500,
     loanDebt: 0,
@@ -202,6 +213,10 @@ export default function App() {
       }
       s.carOwned = true
       s.carValue = cost
+      // Sprint mode: buying the car ends the game immediately — player wins
+      if (s.gameMode === 'sprint') {
+        return { ...s, screen: 'endgame', gameOverReason: 'You bought the car first!', playerWon: true }
+      }
       return s
     })
   }, [])

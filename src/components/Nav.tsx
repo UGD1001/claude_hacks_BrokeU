@@ -1,5 +1,5 @@
 import type { GameState } from '../types'
-import { calcNetWorth, TOTAL_YEARS, HALF_YEAR_SEC } from '../gameData'
+import { calcNetWorth, TOTAL_YEARS, HALF_YEAR_SEC, SPRINT_HALF_YEARS } from '../gameData'
 
 interface NavProps {
   state: GameState
@@ -23,11 +23,12 @@ function fmtTime(secs: number) {
 export default function Nav({ state, onBack }: NavProps) {
   const isGame = state.screen === 'game'
   const netWorth = isGame ? calcNetWorth(state) : 0
+  const isSprint = state.gameMode === 'sprint'
 
-  // Total game = 40 half-years × 30s = 1200s
-  // Remaining = (39 - halfYearsElapsed) × HALF_YEAR_SEC + timeToNextHalfYear
+  // Standard: 40 half-years max. Sprint: SPRINT_HALF_YEARS max.
+  const maxHalfYears = isSprint ? SPRINT_HALF_YEARS : TOTAL_YEARS * 2
   const totalSecsLeft = isGame
-    ? Math.max(0, (39 - state.halfYearsElapsed) * HALF_YEAR_SEC + state.timeToNextHalfYear)
+    ? Math.max(0, (maxHalfYears - 1 - state.halfYearsElapsed) * HALF_YEAR_SEC + state.timeToNextHalfYear)
     : 0
 
   return (
@@ -38,8 +39,9 @@ export default function Nav({ state, onBack }: NavProps) {
 
       {isGame && (
         <>
+          {isSprint && <div className="nav-sprint-badge">⚡ SPRINT</div>}
           <div className="nav-year">
-            // year <span className="nav-year-num">{state.year}</span> of {TOTAL_YEARS}
+            // year <span className="nav-year-num">{state.year}</span>{!isSprint && ` of ${TOTAL_YEARS}`}
           </div>
           <div className={`nav-timer ${totalSecsLeft < 120 ? 'urgent' : ''}`}>
             ● {fmtTime(totalSecsLeft)}

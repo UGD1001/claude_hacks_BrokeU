@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import type { GameState, StockId, CryptoId, EventChoice, SideHustleId, House, MortgageTerm } from '../types'
+import type { GameState, StockId, CryptoId, EventChoice, SideHustleId, House, MortgageTerm, MarketCondition } from '../types'
 import {
-  TOTAL_YEARS, HALF_YEAR_SEC, CAR_GOAL,
+  TOTAL_YEARS, HALF_YEAR_SEC, CAR_GOAL, SPRINT_HALF_YEARS,
+  ANNUAL_SALARY_GROWTH, ANNUAL_EXPENSE_INFLATION,
   STOCK_IDS, CRYPTO_IDS,
   MARKET_PARAMS, LIFE_EVENTS, ACHIEVEMENTS, SIDE_HUSTLE_NOTIFICATIONS,
   HOUSE_OPTIONS, HOUSE_OFFER_CASH_THRESHOLD,
@@ -17,11 +18,40 @@ const TICK_SEC = TICK_MS / 1000
 
 type MarketEvent = 'normal' | 'crash' | 'boom' | 'cryptosurge'
 
-function rolledReturn(base: number, variance: number, event: MarketEvent): number {
-  let r = base + (Math.random() * 2 - 1) * variance
+function conditionMultiplier(condition: MarketCondition): number {
+  if (condition === 'bull') return 1.55
+  if (condition === 'bear') return 0.30
+  return 1.0
+}
+
+function rolledReturn(base: number, variance: number, event: MarketEvent, condition: MarketCondition = 'neutral'): number {
+  const cMod = conditionMultiplier(condition)
+  let r = base * cMod + (Math.random() * 2 - 1) * variance
   if (event === 'crash') r = Math.min(r, -0.18 + Math.random() * 0.05)
   if (event === 'boom')  r = Math.max(r,  0.14 + Math.random() * 0.06)
   return r
+}
+
+function stepMarketCondition(s: GameState): void {
+  const prev = s.marketCondition
+  if (s.marketConditionYearsLeft > 0) {
+    s.marketConditionYearsLeft -= 1
+    return
+  }
+  const roll = Math.random()
+  if (s.marketCondition === 'neutral') {
+    if      (roll < 0.15) { s.marketCondition = 'bull'; s.marketConditionYearsLeft = 1 + Math.floor(Math.random() * 3) }
+    else if (roll < 0.27) { s.marketCondition = 'bear'; s.marketConditionYearsLeft = 1 + Math.floor(Math.random() * 2) }
+  } else if (s.marketCondition === 'bull') {
+    if (roll < 0.35) { s.marketCondition = 'neutral'; s.marketConditionYearsLeft = 0 }
+  } else {
+    if (roll < 0.45) { s.marketCondition = 'neutral'; s.marketConditionYearsLeft = 0 }
+  }
+  if (s.marketCondition !== prev) {
+    if (s.marketCondition === 'bull')    pushToast(s, '📈 Bull market! Strong returns expected.')
+    else if (s.marketCondition === 'bear') pushToast(s, '📉 Bear market. Brace for rough returns.')
+    else                                 pushToast(s, '↔️ Market normalising.')
+  }
 }
 
 function rollMarketEvent(year: number): MarketEvent {
@@ -54,9 +84,11 @@ function applyMonthlyStockUpdate(prev: GameState): GameState {
     cryptoSparklines: { ...prev.cryptoSparklines } as Record<CryptoId, number[]>,
   }
 
-  // Stocks: update every month (small monthly variance)
+  const cond = s.marketCondition
+
+  // Stocks: update every month (small monthly variance, influenced by market condition)
   for (const id of STOCK_IDS) {
-    const ret = rolledReturn(MARKET_PARAMS.stocks.base / 12, MARKET_PARAMS.stocks.variance / 3, 'normal')
+    const ret = rolledReturn(MARKET_PARAMS.stocks.base / 12, MARKET_PARAMS.stocks.variance / 3, 'normal', cond)
     s.stockPrices[id] = Math.max(1, s.stockPrices[id] * (1 + ret))
     s.stockSparklines = {
       ...s.stockSparklines,
@@ -67,7 +99,7 @@ function applyMonthlyStockUpdate(prev: GameState): GameState {
   // Cryptos: also update monthly when unlocked
   if (s.year >= 10) {
     for (const id of CRYPTO_IDS) {
-      const ret = rolledReturn(MARKET_PARAMS.crypto.base / 12, MARKET_PARAMS.crypto.variance / 3, 'normal')
+      const ret = rolledReturn(MARKET_PARAMS.crypto.base / 12, MARKET_PARAMS.crypto.variance / 3, 'normal', cond)
       s.cryptoPrices[id] = Math.max(0.001, s.cryptoPrices[id] * (1 + ret))
       s.cryptoSparklines = {
         ...s.cryptoSparklines,
@@ -153,17 +185,19 @@ function applyHalfYearTick(prev: GameState): GameState {
 
   const marketEvent = rollMarketEvent(year)
 
+  const cond = s.marketCondition
+
   // ── 1. Half-year investment returns ───────────────────────────────────────
-  // Applied each half-year as half the annual rate
+  // Applied each half-year as half the annual rate, factoring in market condition
   if (s.bankValue > 0)
-    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal')
+    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal', 'neutral')  // bank unaffected by condition
 
   if (s.indexValue > 0)
-    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent)
+    s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent, cond)
 
   if (year >= 10 && s.cryptoBasketValue > 0)
     s.cryptoBasketValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoBasket.base / 2, MARKET_PARAMS.cryptoBasket.variance / 2,
-      marketEvent === 'cryptosurge' ? 'boom' : marketEvent)
+      marketEvent === 'cryptosurge' ? 'boom' : marketEvent, cond)
 
   // ── 2. Half-year income & expenses ───────────────────────────────────────
   const hustleIncome    = getSideHustleAnnualIncome(s) / 2  // half of annual
@@ -204,6 +238,15 @@ function applyHalfYearTick(prev: GameState): GameState {
 
   // ── 5. Year-only actions (run once per year on 2nd half) ──────────────────
   if (isNewYear) {
+    // Salary growth (+2%/yr automatic raises)
+    s.salaryMultiplier *= (1 + ANNUAL_SALARY_GROWTH)
+
+    // Expense inflation (+1.5%/yr)
+    s.expensesExtra += s.monthlyExpenses * ANNUAL_EXPENSE_INFLATION
+
+    // Market condition state machine
+    stepMarketCondition(s)
+
     // Car depreciation
     if (s.carOwned) s.carValue *= 0.9
 
@@ -343,8 +386,8 @@ function applyHalfYearTick(prev: GameState): GameState {
     s.nextEventHalfYear = halfYear + 1 + Math.floor(Math.random() * 7)
   }
 
-  // ── 9. House offer event ─────────────────────────────────────────────────
-  if (!s.houseEventFired && !s.activeEvent && !s.isPaused && s.cash >= HOUSE_OFFER_CASH_THRESHOLD) {
+  // ── 9. House offer event (suppressed in sprint mode — focus on car goal) ──
+  if (s.gameMode !== 'sprint' && !s.houseEventFired && !s.activeEvent && !s.isPaused && s.cash >= HOUSE_OFFER_CASH_THRESHOLD) {
     s.houseEventFired = true
     s.houseOptions = HOUSE_OPTIONS
     s.showHouseOffer = true
@@ -364,7 +407,27 @@ function applyHalfYearTick(prev: GameState): GameState {
     return { ...s, screen: 'endgame', gameOverReason: 'You ran out of money.', playerWon: false }
   }
 
-  if (year >= TOTAL_YEARS && isNewYear) {
+  // Sprint mode: computer beats player to the car
+  if (s.gameMode === 'sprint' && s.compCarOwned && !s.carOwned) {
+    return {
+      ...s, screen: 'endgame',
+      gameOverReason: 'The computer bought the car first.',
+      playerWon: false,
+    }
+  }
+
+  // Sprint mode: timer expires (10 min max)
+  if (s.gameMode === 'sprint' && halfYear >= SPRINT_HALF_YEARS) {
+    return {
+      ...s, year,
+      screen: 'endgame',
+      gameOverReason: 'Time up! Closest to the goal wins.',
+      playerWon: calcNetWorth(s) >= calcCompNetWorth(s),
+    }
+  }
+
+  // Standard mode: 20-year timer
+  if (s.gameMode === 'standard' && year >= TOTAL_YEARS && isNewYear) {
     return {
       ...s,
       year: TOTAL_YEARS,
