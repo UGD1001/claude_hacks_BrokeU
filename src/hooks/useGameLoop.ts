@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { GameState, StockId, CryptoId, EventChoice, SideHustleId, House, MortgageTerm, MarketCondition } from '../types'
+import { createSeededRng } from '../lib/seededRng'
 import {
   TOTAL_YEARS, HALF_YEAR_SEC, CAR_GOAL, SPRINT_HALF_YEARS,
   ANNUAL_SALARY_GROWTH, ANNUAL_EXPENSE_INFLATION,
@@ -24,24 +25,24 @@ function conditionMultiplier(condition: MarketCondition): number {
   return 1.0
 }
 
-function rolledReturn(base: number, variance: number, event: MarketEvent, condition: MarketCondition = 'neutral'): number {
+function rolledReturn(base: number, variance: number, event: MarketEvent, condition: MarketCondition = 'neutral', rng: () => number = Math.random): number {
   const cMod = conditionMultiplier(condition)
-  let r = base * cMod + (Math.random() * 2 - 1) * variance
-  if (event === 'crash') r = Math.min(r, -0.18 + Math.random() * 0.05)
-  if (event === 'boom')  r = Math.max(r,  0.14 + Math.random() * 0.06)
+  let r = base * cMod + (rng() * 2 - 1) * variance
+  if (event === 'crash') r = Math.min(r, -0.18 + rng() * 0.05)
+  if (event === 'boom')  r = Math.max(r,  0.14 + rng() * 0.06)
   return r
 }
 
-function stepMarketCondition(s: GameState): void {
+function stepMarketCondition(s: GameState, rng: () => number): void {
   const prev = s.marketCondition
   if (s.marketConditionYearsLeft > 0) {
     s.marketConditionYearsLeft -= 1
     return
   }
-  const roll = Math.random()
+  const roll = rng()
   if (s.marketCondition === 'neutral') {
-    if      (roll < 0.15) { s.marketCondition = 'bull'; s.marketConditionYearsLeft = 1 + Math.floor(Math.random() * 3) }
-    else if (roll < 0.27) { s.marketCondition = 'bear'; s.marketConditionYearsLeft = 1 + Math.floor(Math.random() * 2) }
+    if      (roll < 0.15) { s.marketCondition = 'bull'; s.marketConditionYearsLeft = 1 + Math.floor(rng() * 3) }
+    else if (roll < 0.27) { s.marketCondition = 'bear'; s.marketConditionYearsLeft = 1 + Math.floor(rng() * 2) }
   } else if (s.marketCondition === 'bull') {
     if (roll < 0.35) { s.marketCondition = 'neutral'; s.marketConditionYearsLeft = 0 }
   } else {
@@ -113,7 +114,7 @@ function applyMonthlyStockUpdate(prev: GameState): GameState {
 
 // ── Life event picker ─────────────────────────────────────────────────────────
 
-function pickLifeEvent(year: number, s: GameState) {
+function pickLifeEvent(year: number, s: GameState, rng: () => number) {
   const hasInvestments = s.indexValue + s.bankValue > 500
   const hasCrypto = s.year >= 10 && (
     s.cryptoBasketValue + CRYPTO_IDS.reduce((a, id) => a + s.cryptoHeld[id] * s.cryptoPrices[id], 0) > 100
@@ -138,12 +139,12 @@ function pickLifeEvent(year: number, s: GameState) {
   })
 
   if (pool.length === 0) return LIFE_EVENTS.find(e => e.id === 'tax_refund')!
-  return pool[Math.floor(Math.random() * pool.length)]
+  return pool[Math.floor(rng() * pool.length)]
 }
 
 // ── Side hustle event picker (auto-fires, no player choice) ───────────────────
 
-function maybeFireSideHustle(s: GameState): GameState {
+function maybeFireSideHustle(s: GameState, rng: () => number): GameState {
   // All auto-hustles except rental
   const AUTO_HUSTLES: SideHustleId[] = ['freelance', 'store', 'content', 'digital']
   // Only fire if not already active and not already all active
@@ -151,9 +152,9 @@ function maybeFireSideHustle(s: GameState): GameState {
   if (remaining.length === 0) return s
 
   // 15% chance per half-year that a new hustle activates
-  if (Math.random() > 0.15) return s
+  if (rng() > 0.15) return s
 
-  const newHustle = remaining[Math.floor(Math.random() * remaining.length)]
+  const newHustle = remaining[Math.floor(rng() * remaining.length)]
   const note = SIDE_HUSTLE_NOTIFICATIONS[newHustle]
   const ns = { ...s, activeSideHustles: [...s.activeSideHustles, newHustle] }
   if (note) pushToast(ns, `${note.icon} ${note.text}`)
@@ -183,14 +184,19 @@ function applyHalfYearTick(prev: GameState): GameState {
   const year = Math.ceil(halfYear / 2)     // 1–20
   const isNewYear = halfYear % 2 === 0     // true on 2nd half of each year
 
-  const marketEvent = rollMarketEvent(year, Math.random)
+  // Seeded RNG: all players in the same session share mpSessionSeed + halfYear → identical market outcomes
+  const rng: () => number = s.mpSessionSeed !== 0
+    ? createSeededRng(s.mpSessionSeed * 10000 + halfYear)
+    : Math.random
+
+  const marketEvent = rollMarketEvent(year, rng)
 
   const cond = s.marketCondition
 
   // ── 1. Half-year investment returns ───────────────────────────────────────
   // Bank: synthetic (risk-free savings rate)
   if (s.bankValue > 0)
-    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal', 'neutral')
+    s.bankValue *= 1 + rolledReturn(MARKET_PARAMS.bank.base / 2, MARKET_PARAMS.bank.variance / 2, 'normal', 'neutral', rng)
 
   // Real stock prices — snap to actual historical data at each half-year boundary
   {
@@ -211,13 +217,13 @@ function applyHalfYearTick(prev: GameState): GameState {
       const spyReturn = (spyNew - spyPrev) / spyPrev
       s.indexValue *= (1 + spyReturn)
     } else if (s.indexValue > 0) {
-      s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent, cond)
+      s.indexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent, cond, rng)
     }
   }
 
   if (year >= 10 && s.cryptoBasketValue > 0)
     s.cryptoBasketValue *= 1 + rolledReturn(MARKET_PARAMS.cryptoBasket.base / 2, MARKET_PARAMS.cryptoBasket.variance / 2,
-      marketEvent === 'cryptosurge' ? 'boom' : marketEvent, cond)
+      marketEvent === 'cryptosurge' ? 'boom' : marketEvent, cond, rng)
 
   // ── 2. Half-year income & expenses ───────────────────────────────────────
   const hustleIncome    = getSideHustleAnnualIncome(s) / 2  // half of annual
@@ -254,7 +260,7 @@ function applyHalfYearTick(prev: GameState): GameState {
   }
 
   // ── 4. Maybe fire a side hustle event ────────────────────────────────────
-  Object.assign(s, maybeFireSideHustle(s))
+  Object.assign(s, maybeFireSideHustle(s, rng))
 
   // ── 5. Year-only actions (run once per year on 2nd half) ──────────────────
   if (isNewYear) {
@@ -266,7 +272,7 @@ function applyHalfYearTick(prev: GameState): GameState {
     s.expensesExtra += s.monthlyExpenses * ANNUAL_EXPENSE_INFLATION
 
     // Market condition state machine
-    stepMarketCondition(s)
+    stepMarketCondition(s, rng)
 
     // Car depreciation
     if (s.carOwned) s.carValue *= 0.9
@@ -339,7 +345,7 @@ function applyHalfYearTick(prev: GameState): GameState {
     if (spyNew !== null && spyPrev !== null && spyPrev > 0 && s.compIndexValue > 0) {
       s.compIndexValue *= (1 + (spyNew - spyPrev) / spyPrev)
     } else if (s.compIndexValue > 0) {
-      s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent)
+      s.compIndexValue *= 1 + rolledReturn(MARKET_PARAMS.index.base / 2, MARKET_PARAMS.index.variance / 2, marketEvent, 'neutral', rng)
     }
   }
 
@@ -413,10 +419,10 @@ function applyHalfYearTick(prev: GameState): GameState {
 
   // ── 8. Life event firing ─────────────────────────────────────────────────
   if (!s.activeEvent && !s.isPaused && halfYear >= s.nextEventHalfYear) {
-    s.activeEvent = pickLifeEvent(year, s)
+    s.activeEvent = pickLifeEvent(year, s, rng)
     s.isPaused = true
     // Next event in 1–7 half-years from now
-    s.nextEventHalfYear = halfYear + 1 + Math.floor(Math.random() * 7)
+    s.nextEventHalfYear = halfYear + 1 + Math.floor(rng() * 7)
   }
 
   // ── 9. House offer event (suppressed in sprint mode — focus on car goal) ──

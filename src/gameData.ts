@@ -1,5 +1,6 @@
 import type { StockId, CryptoId, GameEvent, GameState, HouseOption, MortgageTerm } from './types'
 import rawGameStocks from './data/gameStocks.json'
+import { createSeededRng } from './lib/seededRng'
 
 // Typed access to the real historical price data
 const GAME_STOCKS = rawGameStocks as Record<string, Record<string, number | null>>
@@ -28,6 +29,13 @@ export function pickGameStartDate(): string {
   const years = [1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005]
   const year = years[Math.floor(Math.random() * years.length)]
   return `${year}-01`
+}
+
+/** Deterministically derive a game-start date from a shared session seed */
+export function deriveGameStartDate(seed: number): string {
+  const years = [1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005]
+  const rng = createSeededRng(seed)
+  return `${years[Math.floor(rng() * years.length)]}-01`
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────

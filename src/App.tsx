@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, GameMode, SideHustleId } from './types'
-import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, HALF_YEAR_SEC, pickGameStartDate, SIDE_HUSTLES } from './gameData'
+import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, HALF_YEAR_SEC, pickGameStartDate, deriveGameStartDate, SIDE_HUSTLES } from './gameData'
 import { useGameLoop, applyEventChoice, applyHousePurchase, applyHouseMoveIn, applyHouseRentOut } from './hooks/useGameLoop'
 import { useMultiplayer } from './hooks/useMultiplayer'
 import Nav from './components/Nav'
@@ -26,7 +26,8 @@ function generateId(): string {
 }
 
 function makeInitialState(setup: SetupConfig, mpRole: 'solo' | 'host' | 'client', mpSessionId: string, mpPlayerId: string, mpSessionSeed: number): GameState {
-  const gameStartDate = pickGameStartDate()
+  // In multiplayer, derive the historical era from the shared seed so all players see the same market data
+  const gameStartDate = mpSessionSeed !== 0 ? deriveGameStartDate(mpSessionSeed) : pickGameStartDate()
   const { stockPrices, stockSparklines, cryptoPrices, cryptoSparklines } = makeInitialMarketData(gameStartDate)
 
   const stockHeld = {} as Record<StockId, number>
