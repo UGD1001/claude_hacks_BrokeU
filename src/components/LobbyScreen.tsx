@@ -24,9 +24,17 @@ export default function LobbyScreen({ state, onStartGame, onBack }: Props) {
           <span className="lobby-session-id">{state.mpSessionId.toUpperCase()}</span>
         </div>
 
+        {isHost && (
+          <div className="lobby-how-to">
+            <div className="lobby-how-step"><span className="lobby-how-num">1</span>Share the session code above with other players.</div>
+            <div className="lobby-how-step"><span className="lobby-how-num">2</span>They click <strong>Join Game</strong> on the menu and enter the code.</div>
+            <div className="lobby-how-step"><span className="lobby-how-num">3</span>Click <strong>Start Game</strong> once everyone has joined.</div>
+          </div>
+        )}
+
         <div className="lobby-info">
           {isHost
-            ? 'You are the host. Others can join by clicking "Join Game" from the menu. Start when ready.'
+            ? 'All players share the same market — who survives best wins.'
             : 'Waiting for the host to start the game…'}
         </div>
 

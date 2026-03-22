@@ -1714,6 +1714,41 @@ body {
   font-weight: bold;
 }
 
+.lobby-how-to {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--slate);
+  border-left: 3px solid var(--teal);
+  padding: 12px 14px;
+  border-radius: 3px;
+}
+
+.lobby-how-step {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--dsage);
+  line-height: 1.6;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.lobby-how-step strong { color: var(--sage); }
+
+.lobby-how-num {
+  flex-shrink: 0;
+  background: var(--teal);
+  color: var(--bg3);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .lobby-info {
   font-family: 'Nunito Sans', sans-serif;
   font-size: 13px;
@@ -1928,6 +1963,80 @@ body {
   padding: 4px 0;
   letter-spacing: 0.05em;
 }
+
+/* ── Multiplayer Help Panel ────────────────────────────────────────────────── */
+
+.menu-mp-help-toggle {
+  background: none;
+  border: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--mid);
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+  letter-spacing: 0.05em;
+  transition: color 0.15s;
+}
+.menu-mp-help-toggle:hover { color: var(--dsage); }
+
+.menu-mp-help {
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.menu-mp-help-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--slate);
+  margin-top: 6px;
+}
+
+.menu-mp-help-step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--dsage);
+  line-height: 1.7;
+}
+.menu-mp-help-step em { color: var(--amber); font-style: normal; }
+.menu-mp-help-step strong { color: var(--sage); }
+.menu-mp-help-step code {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--slate);
+  padding: 1px 5px;
+  border-radius: 2px;
+  color: var(--amber);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.menu-mp-help-num {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  background: var(--slate);
+  color: var(--bg3);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.menu-mp-help-note {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--mid);
+  line-height: 1.6;
+  border-top: 1px solid var(--slate);
+  padding-top: 8px;
+}
+
 /* Slide 6: Trophy */
 .tut-trophy {
   display: flex;
