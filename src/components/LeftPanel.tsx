@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import type { GameState } from '../types'
+import type { GameState, SideHustleId } from '../types'
 import { calcNetWorth, calcCompNetWorth, getAnnualFlow, SIDE_HUSTLES, CAR_GOAL, CODEX_ENTRIES } from '../gameData'
 
 interface Props {
   state: GameState
+  onActivateSideHustle: (id: SideHustleId) => void
 }
 
 function fmt(n: number) {
@@ -20,7 +21,7 @@ function fmtYr(n: number): string {
   return prefix + '$' + Math.floor(abs).toLocaleString('en-US')
 }
 
-export default function LeftPanel({ state }: Props) {
+export default function LeftPanel({ state, onActivateSideHustle }: Props) {
   const [flowOpen, setFlowOpen] = useState(false)
   const [hustlesOpen, setHustlesOpen] = useState(false)
   const [showCodex, setShowCodex] = useState(false)
@@ -39,7 +40,8 @@ export default function LeftPanel({ state }: Props) {
     { label: 'Computer', nw: compNW, isMe: false, car: state.compCarOwned, house: !!state.compHouse },
   ].sort((a, b) => b.nw - a.nw)
 
-  const activeHustles = SIDE_HUSTLES.filter(h => state.activeSideHustles.includes(h.id))
+  const activeHustles   = SIDE_HUSTLES.filter(h => state.activeSideHustles.includes(h.id))
+  const inactiveHustles = SIDE_HUSTLES.filter(h => h.id !== 'rental' && !state.activeSideHustles.includes(h.id))
 
   return (
     <div className="left-panel">
@@ -178,15 +180,7 @@ export default function LeftPanel({ state }: Props) {
         <span className="lp-label">SIDE HUSTLES</span>
         <span className={`lp-caret ${hustlesOpen ? 'open' : ''}`}>▼</span>
       </div>
-      {activeHustles.length === 0 ? (
-        <div className="lp-muted-note">Auto-triggered by life events</div>
-      ) : (
-        <div className="lp-kv">
-          <span className="lp-k">Active</span>
-          <span className="lp-pos lp-v">{activeHustles.length} hustle{activeHustles.length > 1 ? 's' : ''}</span>
-        </div>
-      )}
-      {hustlesOpen && activeHustles.length > 0 && (
+      {hustlesOpen && (
         <div className="lp-hustle-list">
           {activeHustles.map(h => {
             const halfYrs = state.sideHustleHalfYearsActive[h.id] ?? 0
@@ -204,6 +198,20 @@ export default function LeftPanel({ state }: Props) {
               </div>
             )
           })}
+          {inactiveHustles.map(h => (
+            <div key={h.id} className="lp-hustle-item lp-hustle-inactive">
+              <span className="lp-hustle-info">
+                <span>{h.icon} {h.name}</span>
+                <span className="lp-muted" style={{fontSize:'0.7rem'}}>{h.cost > 0 ? `$${h.cost} setup` : 'free'}</span>
+              </span>
+              <button
+                className="lp-hustle-add"
+                disabled={state.cash < h.cost}
+                onClick={() => onActivateSideHustle(h.id)}
+                title={state.cash < h.cost ? `Need $${h.cost} to start` : `Start for $${h.cost}`}
+              >+</button>
+            </div>
+          ))}
         </div>
       )}
 

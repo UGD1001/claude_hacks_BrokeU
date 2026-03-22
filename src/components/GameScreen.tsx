@@ -1,4 +1,4 @@
-import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm } from '../types'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, SideHustleId } from '../types'
 import LeftPanel from './LeftPanel'
 import CenterPanel from './CenterPanel'
 import AchievementToast from './AchievementToast'
@@ -16,6 +16,7 @@ interface Props {
   onSellStock: (id: StockId, shares: number) => void
   onBuyCrypto: (id: CryptoId, units: number) => void
   onSellCrypto: (id: CryptoId, units: number) => void
+  onActivateSideHustle: (id: SideHustleId) => void
   onPurchaseHouse: (option: HouseOption, downPct: number, term: MortgageTerm) => void
   onDeclineHouse: () => void
   onMoveIn: () => void
@@ -26,13 +27,14 @@ export default function GameScreen({
   state,
   onEventChoice, onCarBuy, onCarSkip,
   onInvestCore, onWithdrawCore, onBuyStock, onSellStock, onBuyCrypto, onSellCrypto,
+  onActivateSideHustle,
   onPurchaseHouse, onDeclineHouse, onMoveIn, onRentOut,
 }: Props) {
   const currentRent = state.rent + state.rentExtra
 
   return (
     <div className="game-screen">
-      <LeftPanel state={state} />
+      <LeftPanel state={state} onActivateSideHustle={onActivateSideHustle} />
       <CenterPanel
         state={state}
         onEventChoice={onEventChoice}

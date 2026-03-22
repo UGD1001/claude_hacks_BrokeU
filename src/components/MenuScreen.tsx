@@ -14,9 +14,20 @@ const TITLE = [
   { char: 'U', cls: 'y' },
 ]
 
+function useMSTClock() {
+  const getMST = () => new Date().toLocaleTimeString('en-US', { timeZone: 'America/Denver', hour: 'numeric', minute: '2-digit', hour12: true })
+  const [time, setTime] = useState(getMST)
+  useEffect(() => {
+    const t = setInterval(() => setTime(getMST()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return time
+}
+
 export default function MenuScreen({ onNewGame }: MenuScreenProps) {
   const [cursorVisible, setCursorVisible] = useState(true)
   const [typedCount, setTypedCount] = useState(0)
+  const mstTime = useMSTClock()
 
   useEffect(() => {
     const t = setInterval(() => setCursorVisible(v => !v), 530)
@@ -172,7 +183,7 @@ export default function MenuScreen({ onNewGame }: MenuScreenProps) {
         display:'flex', alignItems:'center', gap:32,
       }}>
         <span style={{ fontSize:6, letterSpacing:'0.1em', color:'#63787d', textTransform:'uppercase' }}>▶ DORM ROOM 214 · WESTBROOK HALL</span>
-        <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:11, color:'#c9cca1', textShadow:'2px 2px 0 #543344' }}>2:47 AM · YEAR 01</span>
+        <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:11, color:'#c9cca1', textShadow:'2px 2px 0 #543344' }}>{mstTime} MST · YEAR 01</span>
         <span style={{ fontSize:6, color:'#8ea091', lineHeight:2 }}>PHASE 1: RACE TO $25,000 · BUY A CAR</span>
       </div>
     </div>

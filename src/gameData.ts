@@ -185,12 +185,12 @@ export const HOUSE_OFFER_CASH_THRESHOLD = 1.5 * 0.2 * HOUSE_OPTIONS[0].price   /
 // ── Side hustles (auto-activated by events, no player cost) ───────────────────
 
 export const SIDE_HUSTLES = [
-  { id: 'freelance' as const, name: 'Freelancing',     icon: '💻', annualIncome: 3_000, growthYears: 0 },
-  { id: 'store'     as const, name: 'Online Store',    icon: '🛒', annualIncome: 4_000, growthYears: 0 },
-  { id: 'content'   as const, name: 'Content Creator', icon: '🎥', annualIncome: 2_000, growthYears: 3 },
-  { id: 'digital'   as const, name: 'Digital Product', icon: '📝', annualIncome: 2_400, growthYears: 0 },
+  { id: 'freelance' as const, name: 'Freelancing',     icon: '💻', annualIncome: 3_000, growthYears: 0, cost: 0    },
+  { id: 'store'     as const, name: 'Online Store',    icon: '🛒', annualIncome: 4_000, growthYears: 0, cost: 200  },
+  { id: 'content'   as const, name: 'Content Creator', icon: '🎥', annualIncome: 2_000, growthYears: 3, cost: 0    },
+  { id: 'digital'   as const, name: 'Digital Product', icon: '📝', annualIncome: 2_400, growthYears: 0, cost: 5000 },
   // rental is a special case — only unlocked via house + move-out decision
-  { id: 'rental'    as const, name: 'Room Rental',     icon: '🏠', annualIncome: 0,     growthYears: 0 }, // income set from house.rentalIncomeMonthly × 12
+  { id: 'rental'    as const, name: 'Room Rental',     icon: '🏠', annualIncome: 0,     growthYears: 0, cost: 0    }, // income set from house.rentalIncomeMonthly × 12
 ] as const
 
 // ── Life events ────────────────────────────────────────────────────────────────

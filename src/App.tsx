@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
-import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, GameMode } from './types'
-import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, HALF_YEAR_SEC, pickGameStartDate } from './gameData'
+import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice, HouseOption, MortgageTerm, GameMode, SideHustleId } from './types'
+import { makeInitialMarketData, STOCK_IDS, CRYPTO_IDS, HALF_YEAR_SEC, pickGameStartDate, SIDE_HUSTLES } from './gameData'
 import { useGameLoop, applyEventChoice, applyHousePurchase, applyHouseMoveIn, applyHouseRentOut } from './hooks/useGameLoop'
 import Nav from './components/Nav'
 import MenuScreen from './components/MenuScreen'
@@ -267,6 +267,20 @@ export default function App() {
     })
   }, [])
 
+  const handleActivateSideHustle = useCallback((id: SideHustleId) => {
+    setGameState(prev => {
+      if (prev.activeSideHustles.includes(id)) return prev
+      const hustle = SIDE_HUSTLES.find(h => h.id === id)
+      if (!hustle || prev.cash < hustle.cost) return prev
+      return {
+        ...prev,
+        cash: prev.cash - hustle.cost,
+        activeSideHustles: [...prev.activeSideHustles, id],
+        sideHustleHalfYearsActive: { ...prev.sideHustleHalfYearsActive, [id]: 0 },
+      }
+    })
+  }, [])
+
   const handlePurchaseHouse = useCallback((option: HouseOption, downPct: number, termYears: MortgageTerm) => {
     setGameState(prev => applyHousePurchase(prev, option, downPct, termYears))
   }, [])
@@ -320,6 +334,7 @@ export default function App() {
           onSellStock={handleSellStock}
           onBuyCrypto={handleBuyCrypto}
           onSellCrypto={handleSellCrypto}
+          onActivateSideHustle={handleActivateSideHustle}
           onPurchaseHouse={handlePurchaseHouse}
           onDeclineHouse={handleDeclineHouse}
           onMoveIn={handleMoveIn}

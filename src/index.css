@@ -2108,3 +2108,31 @@ body {
   transform: translate(2px,2px);
   box-shadow: 1px 1px 0 var(--terra);
 }
+/* ── House tile progress ── */
+.house-prog-bar { height:3px; background:var(--darker); border-radius:2px; margin-top:4px; }
+.house-prog-fill { height:100%; background:var(--yellow); border-radius:2px; transition:width 0.5s; }
+.inv-tile.house-available { border-color:var(--yellow) !important; }
+
+/* ── Side hustle selectable ── */
+.lp-hustle-inactive { opacity:0.85; }
+.lp-hustle-info { display:flex; flex-direction:column; gap:1px; }
+.lp-hustle-add {
+  background: rgba(162,228,90,0.12);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 22px; height: 22px;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.lp-hustle-add:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: var(--mid);
+  color: var(--mid);
+  background: transparent;
+}

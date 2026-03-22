@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { GameState, StockId, CryptoId, CoreInvestmentId, EventChoice } from '../types'
-import { STOCK_IDS, CRYPTO_IDS, STOCK_META, CRYPTO_META, calcNetWorth, CAR_GOAL } from '../gameData'
+import { STOCK_IDS, CRYPTO_IDS, STOCK_META, CRYPTO_META, calcNetWorth, CAR_GOAL, HOUSE_OFFER_CASH_THRESHOLD } from '../gameData'
 import EventModal from './EventModal'
 import CarModal from './CarModal'
 
@@ -98,6 +98,45 @@ function fmtPrice(p:number) {
   if (p >= 1)    return '$'+p.toFixed(2)
   if (p >= 0.01) return '$'+p.toFixed(4)
   return '$'+p.toExponential(2)
+}
+
+// ── House status tile ─────────────────────────────────────────────────────────
+function HouseTile({ state }: { state: GameState }) {
+  const h = state.house
+  if (h) {
+    const equity = h.currentValue - h.mortgageBalance
+    const status = h.movedIn ? 'Living in it' : h.isRentedOut ? 'Renting out' : 'Vacant'
+    return (
+      <div className="inv-tile">
+        <div className="inv-tile-top">
+          <span className="inv-tile-icon">🏠</span>
+          <span className="inv-ret-badge pos">+{(h.appreciationRate*100).toFixed(0)}%/yr</span>
+        </div>
+        <div className="inv-tile-name">REAL ESTATE</div>
+        <div className="inv-tile-val">{fmt(equity)} equity</div>
+        <div className="inv-risk risk-medium">{status.toUpperCase()}</div>
+      </div>
+    )
+  }
+  const pct = Math.min(100, (state.cash / HOUSE_OFFER_CASH_THRESHOLD) * 100)
+  const available = state.cash >= HOUSE_OFFER_CASH_THRESHOLD
+  return (
+    <div className={`inv-tile locked ${available ? 'house-available' : ''}`}>
+      <div className="inv-tile-top">
+        <span className="inv-tile-icon">🏠</span>
+        <span className="inv-ret-badge pos">+4%/yr</span>
+      </div>
+      <div className="inv-tile-name">REAL ESTATE</div>
+      <div className="inv-tile-val">—</div>
+      {available
+        ? <div className="inv-risk" style={{color:'var(--yellow)'}}>OFFER INCOMING!</div>
+        : <div className="inv-risk risk-safe" style={{fontSize:'0.6rem'}}>
+            SAVE {fmt(HOUSE_OFFER_CASH_THRESHOLD - state.cash)} MORE
+            <div className="house-prog-bar"><div className="house-prog-fill" style={{width:`${pct}%`}}/></div>
+          </div>
+      }
+    </div>
+  )
 }
 
 // ── Core investment tile ──────────────────────────────────────────────────────
@@ -315,10 +354,12 @@ export default function CenterPanel({
           <CoreTile
             id="index" icon="📈" name="Index Fund" value={state.indexValue}
             returnRate="+7%/yr avg" riskLabel="medium risk" riskClass="medium"
-            locked={false} cash={state.cash} canWithdraw
+            locked={state.year < 2} lockMsg="🔒 unlocks yr 2"
+            cash={state.cash} canWithdraw
             onInvest={amt => onInvestCore('index', amt)}
             onWithdraw={amt => onWithdrawCore('index', amt)}
           />
+          <HouseTile state={state} />
           <CoreTile
             id="cryptoBasket" icon="🪙" name="Crypto Basket" value={state.cryptoBasketValue}
             returnRate="+22%/yr avg" riskLabel="extreme risk" riskClass="extreme"
@@ -333,10 +374,10 @@ export default function CenterPanel({
       {/* Stocks */}
       <div className="cp-section">
         <div className="cp-section-hdr">
-          <span>Stocks</span>
+          <span>Stocks {state.year < 2 && <span className="cp-lock-badge">🔒 YR 2</span>}</span>
           <div className="cp-section-line"/>
         </div>
-        <div className="stock-grid">
+        <div className="stock-grid" style={{ opacity:state.year<2?0.4:1, pointerEvents:state.year<2?'none':'auto' }}>
           {STOCK_IDS.map(id => (
             <AssetTile
               key={id} id={id}
@@ -351,6 +392,7 @@ export default function CenterPanel({
             />
           ))}
         </div>
+        {state.year < 2 && <div className="cp-lock-msg">STOCKS UNLOCK AT YEAR 2 · WATCH THE MARKET MOVE</div>}
       </div>
 
       {/* Crypto */}
