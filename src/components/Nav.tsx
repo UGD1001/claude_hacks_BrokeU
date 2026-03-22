@@ -1,33 +1,62 @@
-import type { Screen } from '../types'
+import type { GameState } from '../types'
+import { calcNetWorth, TOTAL_YEARS, YEAR_SEC } from '../gameData'
 
 interface NavProps {
-  screen: Screen
-  netWorth: number
+  state: GameState
   onBack?: () => void
 }
 
 function fmt(n: number) {
-  return '$' + Math.floor(n).toLocaleString('en-US')
+  const abs = Math.abs(n)
+  if (abs >= 1_000_000) return (n < 0 ? '-' : '') + '$' + (abs / 1_000_000).toFixed(2) + 'M'
+  if (abs >= 1_000)     return (n < 0 ? '-' : '') + '$' + Math.floor(abs).toLocaleString('en-US')
+  return (n < 0 ? '-' : '') + '$' + Math.floor(abs)
 }
 
-export default function Nav({ screen, netWorth, onBack }: NavProps) {
+function fmtTime(secs: number) {
+  const total = Math.max(0, secs)
+  const m = Math.floor(total / 60)
+  const s = Math.floor(total % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+export default function Nav({ state, onBack }: NavProps) {
+  const isGame = state.screen === 'game'
+  const netWorth = isGame ? calcNetWorth(state) : 0
+
+  // Time remaining = time until next year + years remaining × 60
+  const yearsLeft = Math.max(0, TOTAL_YEARS - state.year + 1)
+  const totalSecsLeft = isGame ? state.timeToNextYear + (yearsLeft - 1) * YEAR_SEC : 0
+
   return (
     <nav className="nav">
       <div className="nav-logo">
         BROKE <span>U</span>
       </div>
-      {screen === 'game' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginLeft: 'auto', marginRight: 20 }}>
-          <span style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--mid)' }}>
-            NET WORTH: <span style={{ color: 'var(--green)', fontFamily: 'Bebas Neue, sans-serif', fontSize: 16 }}>{fmt(netWorth)}</span>
-          </span>
-        </div>
+
+      {isGame && (
+        <>
+          <div className="nav-year">
+            // year <span className="nav-year-num">{state.year}</span> of {TOTAL_YEARS}
+          </div>
+          <div className={`nav-timer ${totalSecsLeft < 120 ? 'urgent' : ''}`}>
+            ● {fmtTime(totalSecsLeft)}
+          </div>
+          <div className="nav-nw">
+            NET WORTH: <span className="nav-nw-val">{fmt(netWorth)}</span>
+          </div>
+          {state.isPaused && (
+            <div className="nav-paused">⏸ PAUSED</div>
+          )}
+        </>
       )}
-      {onBack && screen !== 'game' && (
-        <button className="btn-back" onClick={onBack} style={{ marginBottom: 0, marginLeft: 'auto', marginRight: 12 }}>
+
+      {onBack && !isGame && (
+        <button className="btn-back" onClick={onBack} style={{ marginLeft: 'auto', marginRight: 12 }}>
           ← Back
         </button>
       )}
+
       <div className="nav-status">
         <div className="nav-dot" />
         FINANCIAL SURVIVAL RPG

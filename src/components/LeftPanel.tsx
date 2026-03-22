@@ -1,164 +1,168 @@
-import type { GameState } from '../types'
-import { INCOME_SOURCES } from '../gameData'
+import { useState } from 'react'
+import type { GameState, SideHustleId } from '../types'
+import { calcNetWorth, calcCompNetWorth, getMonthlyFlow, SIDE_HUSTLES, CODEX_ENTRIES, CAR_GOAL } from '../gameData'
 
-interface LeftPanelProps {
+interface Props {
   state: GameState
+  onActivateHustle: (id: SideHustleId, cost: number) => void
 }
 
 function fmt(n: number) {
   const abs = Math.abs(n)
-  const sign = n < 0 ? '-' : ''
+  const sign = n < 0 ? '−' : ''
+  if (abs >= 1_000_000) return sign + '$' + (abs / 1_000_000).toFixed(2) + 'M'
   return sign + '$' + Math.floor(abs).toLocaleString('en-US')
 }
 
-function fmtTime(secs: number) {
-  const m = Math.floor(Math.max(0, secs) / 60)
-  const s = Math.floor(Math.max(0, secs) % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
+export default function LeftPanel({ state, onActivateHustle }: Props) {
+  const [showCodex, setShowCodex] = useState(false)
+  const [codexId, setCodexId] = useState<string | null>(null)
 
-export default function LeftPanel({ state }: LeftPanelProps) {
-  const investTotal = Object.values(state.investments).reduce((a, b) => a + b, 0)
-  const netWorth = state.cash + investTotal - state.debt
+  const nw = calcNetWorth(state)
+  const compNW = calcCompNetWorth(state)
+  const flow = getMonthlyFlow(state)
+  const goalPct = state.phase === 'car' ? Math.min(100, (nw / CAR_GOAL) * 100) : 100
+  const codexUnlocked = CODEX_ENTRIES.filter(e => state.codexUnlocked.includes(e.id))
+  const detailEntry = codexId ? CODEX_ENTRIES.find(e => e.id === codexId) : null
 
-  const goalPct = state.selectedGoal
-    ? Math.min(100, (netWorth / state.selectedGoal.amount) * 100)
-    : 0
-
-  const remaining = state.selectedGoal ? Math.max(0, state.selectedGoal.amount - netWorth) : 0
-
-  // Compute income/s
-  let incomePerSec = 0
-  for (const srcId of state.activeIncomeSources) {
-    const src = INCOME_SOURCES.find(s => s.id === srcId)
-    if (!src || src.isInvestment) continue
-    let rate = src.ratePerSec
-    if (srcId === 'hustle' && state.hustleBoost > 1) rate *= state.hustleBoost
-    if (srcId === 'dayjob' && state.jobUpgraded) rate += 25
-    incomePerSec += rate
-  }
-  // Add investment passive income estimates
-  const investSrcIds: Array<keyof typeof state.investments> = ['hysa', 'index', 'dividend']
-  for (const id of investSrcIds) {
-    const val = state.investments[id] ?? 0
-    const src = INCOME_SOURCES.find(s => s.id === id)
-    if (src?.investRatePerMin && val > 0) {
-      incomePerSec += (src.investRatePerMin / 60) * val
-    }
-  }
-
-  const stressColor =
-    state.stress > 70 ? 'var(--red)' : state.stress > 40 ? 'var(--yellow)' : 'var(--green)'
+  const lbEntries = [
+    { label: state.playerName || 'You', nw, isMe: true, car: state.carOwned },
+    { label: 'Computer', nw: compNW, isMe: false, car: state.compCarOwned },
+  ].sort((a, b) => b.nw - a.nw)
 
   return (
     <div className="left-panel">
-      <div className="panel-logo">
-        BROKE <span>U</span>
-      </div>
+      <div className="panel-logo">BROKE <span>U</span></div>
 
-      {state.selectedGoal && (
-        <div className="goal-progress-section">
-          <div className="goal-progress-label">
-            <span className="goal-progress-name">
-              {state.selectedGoal.icon} {state.selectedGoal.name}
-            </span>
-            <span className="goal-progress-pct">{goalPct.toFixed(1)}%</span>
+      {state.phase === 'car' && (
+        <div className="lp-goal">
+          <div className="lp-goal-row">
+            <span>🚗 Car Goal</span>
+            <span className="lp-goal-pct">{goalPct.toFixed(0)}%</span>
           </div>
-          <div className="goal-progress-track">
-            <div
-              className="goal-progress-fill"
-              style={{ width: `${goalPct}%` }}
-            />
-          </div>
-          <div className="goal-progress-remaining">
-            {fmt(remaining)} remaining
-          </div>
+          <div className="lp-track"><div className="lp-track-fill" style={{ width: `${goalPct}%` }} /></div>
+          <div className="lp-goal-sub">{fmt(Math.max(0, CAR_GOAL - nw))} to go · target {fmt(CAR_GOAL)}</div>
         </div>
       )}
 
       <div className="divider" />
 
-      <div className="stat-block">
-        <div className="stat-item">
-          <div className="stat-label">Net Worth</div>
-          <div className="stat-value net-worth">{fmt(netWorth)}</div>
-        </div>
-
-        <div className="stat-item">
-          <div className="stat-label">Cash Balance</div>
-          <div className={`stat-value cash ${state.cash < 500 ? 'low' : ''}`}>
-            {fmt(state.cash)}
-          </div>
-          {state.lentMoney > 0 && (
-            <div className="stat-sub">
-              💸 {fmt(state.lentMoney)} lent — returns in {Math.ceil(state.lentReturnIn)}s
-            </div>
-          )}
-        </div>
+      <div className="lp-stat">
+        <div className="lp-label">NET WORTH</div>
+        <div className="lp-nw" style={{ color: nw < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(nw)}</div>
+      </div>
+      <div className="lp-stat">
+        <div className="lp-label">CASH</div>
+        <div className="lp-cash" style={{ color: state.cash < 500 ? 'var(--red)' : 'var(--sky)' }}>{fmt(state.cash)}</div>
       </div>
 
       <div className="divider" />
 
-      <div className="stat-item">
-        <div className="stat-label">Time Remaining</div>
-        <div className={`time-display ${state.timeRemaining < 60 ? 'urgent' : ''}`}>
-          {fmtTime(state.timeRemaining)}
+      <div className="lp-label">MONTHLY FLOW</div>
+      <div className="lp-flow">
+        <div className="lp-fr"><span>Salary</span><span className="lp-pos">+${Math.floor(flow.incomeMo).toLocaleString()}</span></div>
+        {flow.hustleMo > 0 && <div className="lp-fr"><span>Side Hustles</span><span className="lp-pos">+${Math.floor(flow.hustleMo).toLocaleString()}</span></div>}
+        <div className="lp-fr"><span>Rent</span><span className="lp-neg">−${Math.floor(flow.rentMo).toLocaleString()}</span></div>
+        <div className="lp-fr"><span>Expenses</span><span className="lp-neg">−${Math.floor(flow.expensesMo).toLocaleString()}</span></div>
+        {flow.tuitionMo > 0 && <div className="lp-fr"><span>Tuition</span><span className="lp-neg">−${Math.floor(flow.tuitionMo).toLocaleString()}</span></div>}
+        {flow.loanInterestMo > 0 && <div className="lp-fr"><span>Loan int.</span><span className="lp-neg">−${Math.floor(flow.loanInterestMo).toLocaleString()}</span></div>}
+        <div className="lp-flow-div" />
+        <div className="lp-fr lp-net">
+          <span>Net/mo</span>
+          <span style={{ color: flow.netMo >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            {flow.netMo >= 0 ? '+' : '−'}${Math.floor(Math.abs(flow.netMo)).toLocaleString()}
+          </span>
         </div>
       </div>
 
-      <div className="stat-item">
-        <div className="stat-label">Income Rate</div>
-        <div className="income-rate">
-          <span className="income-rate-val">{fmt(incomePerSec)}</span>
-          <span className="income-rate-unit">/s</span>
-        </div>
-        {state.hustleBoost > 1 && state.hustleBoostRemaining > 0 && (
-          <div className="stat-sub" style={{ color: 'var(--green)' }}>
-            🔥 VIRAL BOOST {Math.ceil(state.hustleBoostRemaining)}s
-          </div>
-        )}
-        {state.jobUpgraded && (
-          <div className="stat-sub" style={{ color: 'var(--teal)' }}>
-            ✓ Upgraded job +$25/s
-          </div>
-        )}
-      </div>
-
-      <div className="divider" />
-
-      <div className="stress-section">
-        <div className="stress-label">
-          <span className="stress-name">Stress</span>
-          <span className="stress-val">{Math.round(state.stress)}%</span>
-        </div>
-        <div className="stress-track">
-          <div
-            className="stress-fill"
-            style={{
-              width: `${state.stress}%`,
-              background: stressColor,
-            }}
-          />
-        </div>
-      </div>
-
-      {state.debt > 0 && (
-        <div className="debt-section">
-          <div className="debt-label">⚠ Active Debt (18% APR)</div>
-          <div className="debt-value">{fmt(state.debt)}</div>
-        </div>
-      )}
-
-      {investTotal > 0 && (
+      {(state.loanDebt > 0 || state.tuitionRemaining > 0) && (
         <>
           <div className="divider" />
-          <div className="stat-item">
-            <div className="stat-label">Investments Total</div>
-            <div className="stat-value" style={{ color: 'var(--teal)', fontSize: 22 }}>
-              {fmt(investTotal)}
-            </div>
-          </div>
+          <div className="lp-label">DEBT TRACKER</div>
+          {state.loanDebt > 0 && <div className="lp-debt-row"><span>Loan (18% APR)</span><span className="lp-neg">{fmt(state.loanDebt)}</span></div>}
+          {state.tuitionRemaining > 0 && <div className="lp-debt-row"><span>Student Loans</span><span className="lp-neg">{fmt(state.tuitionRemaining)}</span></div>}
         </>
+      )}
+      {state.lentMoney > 0 && (
+        <div className="lp-lent">💸 {fmt(state.lentMoney)} lent · returns yr {state.lentReturnYear}</div>
+      )}
+
+      <div className="divider" />
+      <div className="lp-label">SIDE HUSTLES</div>
+      <div className="lp-hustles">
+        {SIDE_HUSTLES.map(h => {
+          const isActive = state.activeSideHustles.includes(h.id)
+          if (isActive) {
+            const yrs = state.sideHustleYearsActive[h.id] ?? 0
+            const mult = ('growthYears' in h) ? Math.min(4, 1 + yrs) : 1
+            const inc = h.annualIncome * mult
+            return (
+              <div key={h.id} className="lp-hustle on">
+                <span>{h.icon} {h.name}</span>
+                <span className="lp-pos">+${inc.toLocaleString()}/yr</span>
+              </div>
+            )
+          }
+          const needsRE = ('requiresRealEstate' in h) && (h as { requiresRealEstate?: boolean }).requiresRealEstate && state.realEstateValue <= 0
+          const notAvail = state.year < h.availableFromYear
+          const blocked = needsRE || notAvail
+          return (
+            <div key={h.id} className="lp-hustle">
+              <span style={{ opacity: blocked ? 0.45 : 1 }}>
+                {h.icon} {h.name}
+                {needsRE && <em className="lp-lock"> (needs RE)</em>}
+                {notAvail && <em className="lp-lock"> (yr {h.availableFromYear}+)</em>}
+              </span>
+              <button
+                className="lp-hustle-btn"
+                disabled={blocked || state.cash < h.cost}
+                onClick={() => onActivateHustle(h.id, h.cost)}
+              >
+                {h.cost > 0 ? `$${h.cost.toLocaleString()}` : 'Free'}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="divider" />
+      <div className="lp-label">LEADERBOARD</div>
+      <div className="lp-lb">
+        {lbEntries.map((e, i) => (
+          <div key={e.label} className={`lp-lb-row ${e.isMe ? 'me' : ''}`}>
+            <span className="lp-lb-rank">#{i + 1}</span>
+            <span className="lp-lb-name">{e.label}{e.car ? ' 🚗' : ''}</span>
+            <span className="lp-lb-nw" style={{ color: e.isMe ? 'var(--yellow)' : 'var(--mid)' }}>{fmt(e.nw)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="divider" />
+      <div className="lp-codex-hdr" onClick={() => setShowCodex(v => !v)}>
+        <span className="lp-label" style={{ cursor: 'pointer' }}>CODEX</span>
+        <span className="lp-codex-ct">{codexUnlocked.length}/{CODEX_ENTRIES.length}</span>
+        <span className="lp-codex-arr">{showCodex ? '▲' : '▼'}</span>
+      </div>
+      {showCodex && (
+        <div className="lp-codex-list">
+          {CODEX_ENTRIES.map(e => {
+            if (!state.codexUnlocked.includes(e.id))
+              return <div key={e.id} className="lp-cdx locked">🔒 ???</div>
+            return (
+              <div key={e.id} className={`lp-cdx ${codexId === e.id ? 'sel' : ''}`} onClick={() => setCodexId(codexId === e.id ? null : e.id)}>
+                {e.title}
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {detailEntry && (
+        <div className="lp-codex-detail">
+          <div className="lp-cdx-title">{detailEntry.title}</div>
+          <div className="lp-cdx-body">{detailEntry.explanation}</div>
+          <div className="lp-cdx-tip">💡 {detailEntry.gameTip}</div>
+          <button className="lp-cdx-close" onClick={() => setCodexId(null)}>✕ close</button>
+        </div>
       )}
     </div>
   )

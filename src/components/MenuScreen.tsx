@@ -1,18 +1,8 @@
 interface MenuScreenProps {
   onNewGame: () => void
-  gpa: number
-  knowledge: number
-  stress: number
 }
 
-export default function MenuScreen({ onNewGame, gpa, knowledge, stress }: MenuScreenProps) {
-  const stats = [
-    { name: 'GPA', value: gpa, max: 4.0, displayVal: gpa.toFixed(1), color: 'var(--green)' },
-    { name: 'Knowledge', value: knowledge, max: 100, displayVal: `${knowledge}%`, color: 'var(--blue)' },
-    { name: 'Stress', value: stress, max: 100, displayVal: `${stress}%`, color: stress > 60 ? 'var(--red)' : 'var(--yellow)' },
-    { name: 'Broke-ness', value: 82, max: 100, displayVal: '82%', color: 'var(--red)' },
-  ]
-
+export default function MenuScreen({ onNewGame }: MenuScreenProps) {
   const now = new Date()
   const hours = now.getHours()
   const timeStr = hours < 6 ? '2:47 AM' : hours < 12 ? '9:13 AM' : hours < 17 ? '2:34 PM' : '11:22 PM'
@@ -31,22 +21,12 @@ export default function MenuScreen({ onNewGame, gpa, knowledge, stress }: MenuSc
           "Adulting is a full-time job with no training."
         </p>
 
-        <div className="stat-bars">
-          {stats.map(s => (
-            <div key={s.name} className="stat-row">
-              <span className="stat-name">{s.name}</span>
-              <div className="stat-track">
-                <div
-                  className="stat-fill"
-                  style={{
-                    width: `${(s.value / s.max) * 100}%`,
-                    background: s.color,
-                  }}
-                />
-              </div>
-              <span className="stat-val">{s.displayVal}</span>
-            </div>
-          ))}
+        <div className="menu-feature-list">
+          <div className="menu-feature">📅 20-year simulation · 1 real minute = 1 year</div>
+          <div className="menu-feature">📈 Stocks, index funds, real estate, crypto</div>
+          <div className="menu-feature">🤖 Race against a computer opponent</div>
+          <div className="menu-feature">⚡ 15 life events that test your decisions</div>
+          <div className="menu-feature">📖 Finance Codex — learn as you play</div>
         </div>
 
         <div className="menu-buttons">
@@ -55,31 +35,24 @@ export default function MenuScreen({ onNewGame, gpa, knowledge, stress }: MenuSc
             New Game — Start Surviving
             <span className="menu-btn-arrow">→</span>
           </button>
-          <button
-            className="menu-btn secondary"
-            onClick={() => alert('CODEX: Master the art of passive income. Buy assets, not liabilities. Keep stress low and net worth high. Time is your enemy — every second counts!')}
-          >
-            <span>📖</span>
-            Codex — Financial Tips
-            <span className="menu-btn-arrow">→</span>
-          </button>
         </div>
       </div>
 
       <div className="menu-right">
         <div className="menu-right-content">
-          <div className="menu-scene-label">📍 Your apartment · Semester 3</div>
+          <div className="menu-scene-label">📍 Your apartment · Year 1</div>
           <div className="menu-scene-time">{timeStr}</div>
           <div className="menu-scene-desc">
-            Ramen for dinner again. Your student loans aren't going to pay themselves.
-            Time to hustle.
+            Ramen for dinner again. $500 in the bank. 20 years to build something.
+            Can you outperform the computer?
           </div>
           <div className="menu-goals-preview">
-            <span className="goal-chip">🚗 Buy a car</span>
-            <span className="goal-chip">🎓 Pay loans</span>
-            <span className="goal-chip">🚀 Start biz</span>
-            <span className="goal-chip">🏠 House down</span>
-            <span className="goal-chip">🌴 Early retire</span>
+            <span className="goal-chip">🏦 Bank savings</span>
+            <span className="goal-chip">📈 Index funds</span>
+            <span className="goal-chip">🏠 Real estate</span>
+            <span className="goal-chip">📊 Individual stocks</span>
+            <span className="goal-chip">🪙 Crypto (yr 10+)</span>
+            <span className="goal-chip">💻 Side hustles</span>
           </div>
         </div>
       </div>
